@@ -96,10 +96,10 @@ GROQ_API_KEY=your_groq_key_here
 |---|---|---|
 | Day 1 | Project setup + GitHub + environment | ✅ Done |
 | Day 2 | PDF ingestion + ChromaDB knowledge base | ✅ Done |
-| Day 3 | Agent 1 — Legal Retriever | ✅ Done |
-| Day 4 | Agent 2 — Document Drafter | ✅ Done |
-| Day 5 | Agent 3 — Resource Locator | ✅ Done |
-| Day 6 | Agent 4 + LangGraph Orchestrator | ✅ Done |
+| Day 3 | Agent 1 — Legal Retriever | ⏳ |
+| Day 4 | Agent 2 — Document Drafter | ⏳ |
+| Day 5 | Agent 3 — Resource Locator | ⏳ |
+| Day 6 | Agent 4 + LangGraph Orchestrator | ⏳ |
 | Day 7 | Language layer + FastAPI + Emergency mode | ⏳ |
 | Day 8 | React chat UI components | ⏳ |
 | Day 9 | Connect frontend to backend | ⏳ |
@@ -115,14 +115,14 @@ GROQ_API_KEY=your_groq_key_here
 
 | Document | Source | Status |
 |---|---|---|
-| Domestic Violence Act 2005 | indiacode.nic.in | ⏳ Day 2 |
-| POSH Act 2013 | indiacode.nic.in | ⏳ Day 2 |
-| IPC Section 498A | indiacode.nic.in | ⏳ Day 2 |
-| Maternity Benefit Act | indiacode.nic.in | ⏳ Day 2 |
-| Dowry Prohibition Act | indiacode.nic.in | ⏳ Day 2 |
-| Equal Remuneration Act | indiacode.nic.in | ⏳ Day 2 |
-| CrPC Sections 41/46 | indiacode.nic.in | ⏳ Day 2 |
-| Constitution Art 14–21 | legislative.gov.in | ⏳ Day 2 |
+| Domestic Violence Act 2005 | indiacode.nic.in | ✅ Day 2 |
+| POSH Act 2013 | indiacode.nic.in | ✅ Day 2 |
+| IPC Section 498A | indiacode.nic.in | ✅ Day 2 |
+| Maternity Benefit Act | indiacode.nic.in | ✅ Day 2 |
+| Dowry Prohibition Act | indiacode.nic.in | ✅ Day 2 |
+| Equal Remuneration Act | indiacode.nic.in | ✅ Day 2 |
+| CrPC Sections 41/46 | indiacode.nic.in | ✅ Day 2 |
+| Constitution Art 14–21 | legislative.gov.in | ✅ Day 2 |
 
 ---
 
