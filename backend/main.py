@@ -2,9 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
-from agents.legal_retriever import run as legal_run
-from agents.doc_drafter import run as doc_run, detect_document_type
-from agents.resource_locator import run as resource_run
+from orchestrator import run as orchestrate
 
 app = FastAPI(title="SakhiBot API")
 
@@ -17,81 +15,68 @@ app.add_middleware(
 )
 
 class ChatRequest(BaseModel):
-    message: str
-    language: str = "en"
-    history: list = []
-    district: str = ""
-    state: str = ""
+    message:   str
+    language:  str  = "en"
+    history:   list = []
+    district:  str  = ""
+    state_name: str = ""
 
 class ChatResponse(BaseModel):
-    answer: str
-    sources: list = []
-    resources: list = []
-    helplines: list = []
-    safety_plan: list = []
-    document_ready: bool = False
-    document_type: str = ""
-    next_question: str = ""
-    is_emergency: bool = False
-    detected_lang: str = "en"
-    asking_for_location: bool = False
+    answer:           str
+    sources:          list = []
+    resources:        list = []
+    helplines:        list = []
+    safety_plan:      list = []
+    document_ready:   bool = False
+    document_type:    str  = ""
+    next_question:    str  = ""
+    is_emergency:     bool = False
+    activated_agents: list = []
+    asking_location:  bool = False
+    detected_lang:    str  = "en"
 
 class DocumentRequest(BaseModel):
     document_type: str
-    history: list = []
-
-@app.get("/")
-def root():
-    return {"message": "Welcome to SakhiBot API"}
+    history:       list = []
 
 @app.get("/api/health")
 def health():
     return {
-        "status": "ok",
+        "status":  "ok",
         "project": "SakhiBot",
-        "agents": ["legal_retriever", "doc_drafter", "resource_locator"]
+        "version": "Day 6 — all 4 agents + LangGraph orchestrator"
     }
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
-    # agent 3 — resource locator
-    resource_result = resource_run(
-        req.message,
+    result = orchestrate(
+        message=req.message,
+        language=req.language,
+        history=req.history,
         district=req.district,
-        state=req.state
+        state_name=req.state_name
     )
-
-    # agent 2 — document drafter
-    doc_result = doc_run(req.message, req.history)
-
-    # agent 1 — legal retriever (always runs)
-    legal_result = legal_run(req.message)
-
-    # compose response
-    answer = legal_result["answer"]
-    if doc_result["needs_document"] and doc_result["message"]:
-        answer = doc_result["message"]
-    if resource_result["asking_for"] == "location":
-        answer = resource_result["message"] + "\n\n" + answer
-
     return ChatResponse(
-        answer=answer,
-        sources=legal_result["sources"],
-        resources=resource_result["resources"],
-        helplines=resource_result["helplines"],
-        document_ready=doc_result["document_ready"],
-        document_type=doc_result["document_type"],
-        next_question=doc_result["next_question"],
-        detected_lang=req.language,
-        asking_for_location=resource_result["asking_for"] == "location"
+        answer=result["answer"],
+        sources=result["sources"],
+        resources=result["resources"],
+        helplines=result["helplines"],
+        safety_plan=result["safety_plan"],
+        document_ready=result["document_ready"],
+        document_type=result["document_type"],
+        next_question=result["next_question"],
+        is_emergency=result["is_emergency"],
+        activated_agents=result["activated_agents"],
+        asking_location=result["asking_location"],
+        detected_lang=req.language
     )
 
 @app.post("/api/document")
 async def generate_document(req: DocumentRequest):
     from agents.doc_drafter import docx_to_pdf_bytes, extract_collected_fields
-    fields = extract_collected_fields(req.history)
+    fields    = extract_collected_fields(req.history)
     pdf_bytes = docx_to_pdf_bytes(req.document_type, fields)
-    filename = f"sakhibot_{req.document_type}.pdf"
+    filename  = f"sakhibot_{req.document_type}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
