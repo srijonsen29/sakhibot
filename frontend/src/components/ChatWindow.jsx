@@ -14,7 +14,7 @@ export default function ChatWindow({ messages, loading, history }) {
   const lastEmergency = messages.findLast?.(m => m.isEmergency) || null
 
   return (
-    <div className="flex-1 overflow-y-auto py-4 space-y-4">
+    <div className="flex-1 overflow-y-auto py-4 sm:py-6 space-y-4">
 
       {/* emergency banner — shown if last bot message was emergency */}
       {lastEmergency && (
@@ -23,8 +23,8 @@ export default function ChatWindow({ messages, loading, history }) {
 
       {/* empty state */}
       {messages.length === 0 && (
-        <div className="flex flex-col items-center justify-center
-                        h-full min-h-48 px-8 text-center">
+        <div className="mx-auto flex h-full min-h-64 max-w-2xl flex-col
+                        items-center justify-center px-6 text-center sm:px-8">
           <div className="w-14 h-14 bg-emerald-100 rounded-full flex
                           items-center justify-center mb-4">
             <svg className="w-7 h-7 text-emerald-600" fill="none"
@@ -40,11 +40,12 @@ export default function ChatWindow({ messages, loading, history }) {
           <p className="text-sm font-medium text-gray-700 mb-1">
             Ask me anything about your rights
           </p>
-          <p className="text-xs text-gray-400 leading-relaxed">
+          <p className="max-w-md text-xs text-gray-400 leading-relaxed
+                        sm:text-sm">
             I can help with domestic violence, workplace rights,
             maternity benefits, dowry laws, and more — in your language.
           </p>
-          <div className="flex flex-wrap gap-2 mt-4 justify-center">
+          <div className="flex flex-wrap gap-2 mt-5 justify-center">
             {STARTER_PROMPTS.map((p, i) => (
               <StarterChip key={i} text={p} />
             ))}

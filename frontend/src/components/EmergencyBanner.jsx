@@ -1,7 +1,7 @@
 export default function EmergencyBanner({ onDismiss }) {
   return (
-    <div className="mx-4 mb-3 bg-red-50 border border-red-200
-                    rounded-2xl p-4 shadow-sm">
+    <div className="mx-auto mb-3 w-[calc(100%-2rem)] max-w-3xl bg-red-50
+                    border border-red-200 rounded-2xl p-4 shadow-sm sm:w-[calc(100%-3rem)]">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-red-100 rounded-full flex items-center
@@ -29,7 +29,7 @@ export default function EmergencyBanner({ onDismiss }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      <div className="grid grid-cols-1 gap-2 mb-3 sm:grid-cols-2">
         {[
           { number: '181',        label: "Women's Helpline" },
           { number: '100',        label: 'Police' },
