@@ -1,178 +1,343 @@
-from groq import Groq
-from agents.legal_retriever import LegalRetriever
-from agents.doc_drafter import DocumentDrafter
-from agents.resource_locator import ResourceLocator
-from agents.safety_planner import SafetyPlanner
-from config import GROQ_API_KEY, LLM_MODEL
+from typing import TypedDict, Annotated
+import operator
+from langgraph.graph import StateGraph, END
+from agents.legal_retriever  import run as legal_run
+from agents.doc_drafter      import run as doc_run, detect_document_type
+from agents.resource_locator import run as resource_run, needs_location
+from agents.safety_planner   import run as safety_run, extract_situation_from_history
+from core.groq_client        import chat as groq_chat
 
-class AgentOrchestrator:
-    """LangGraph-style orchestrator that routes queries to appropriate agents"""
-    
-    def __init__(self):
-        self.llm = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
-        self.legal_retriever = LegalRetriever()
-        self.doc_drafter = DocumentDrafter()
-        self.resource_locator = ResourceLocator()
-        self.safety_planner = SafetyPlanner()
-    
-    def classify_intent(self, message: str):
-        """Classify user intent to route to appropriate agent"""
-        message_lower = message.lower()
-        
-        # Emergency detection
-        emergency_keywords = ["emergency", "danger", "help", "urgent", "threat", "violence now"]
-        if any(kw in message_lower for kw in emergency_keywords):
-            return "emergency"
-        
-        # Document drafting
-        doc_keywords = ["fir", "complaint", "draft", "letter", "document", "file case"]
-        if any(kw in message_lower for kw in doc_keywords):
-            return "document"
-        
-        # Resource finding
-        resource_keywords = ["helpline", "shelter", "centre", "contact", "phone number", "where to go"]
-        if any(kw in message_lower for kw in resource_keywords):
-            return "resources"
-        
-        # Safety planning
-        safety_keywords = ["safety plan", "what should i do", "steps", "how to protect", "escape plan"]
-        if any(kw in message_lower for kw in safety_keywords):
-            return "safety_plan"
-        
-        # Default to legal query
-        return "legal_query"
-    
-    def process(self, message: str, context: dict = None):
-        """Main orchestration logic"""
-        intent = self.classify_intent(message)
-        
-        if intent == "emergency":
-            return self._handle_emergency()
-        
-        elif intent == "document":
-            return self._handle_document_request(message, context)
-        
-        elif intent == "resources":
-            return self._handle_resource_request(message, context)
-        
-        elif intent == "safety_plan":
-            return self._handle_safety_plan(message, context)
-        
-        else:  # legal_query
-            return self._handle_legal_query(message)
-    
-    def _handle_emergency(self):
-        """Emergency response"""
-        emergency_plan = self.safety_planner.get_emergency_plan()
-        emergency_card = self.resource_locator.format_emergency_card()
-        
+# ── state definition ──────────────────────────────────────────────────────────
+class SakhiBotState(TypedDict):
+    # input
+    message:         str
+    language:        str
+    history:         list
+    district:        str
+    state_name:      str
+
+    # routing
+    activated_agents: list[str]
+    is_emergency:     bool
+
+    # agent outputs
+    legal_answer:    str
+    legal_sources:   list
+    doc_result:      dict
+    resource_result: dict
+    safety_result:   dict
+
+    # final output
+    final_answer:    str
+    final_sources:   list
+    final_resources: list
+    final_helplines: list
+    final_plan:      list
+    document_ready:  bool
+    document_type:   str
+    next_question:   str
+    asking_location: bool
+
+
+# ── emergency keywords ────────────────────────────────────────────────────────
+EMERGENCY_KEYWORDS = {
+    "en":  ["help me now", "in danger", "hitting me", "killing me",
+            "he will kill", "very scared", "please help", "beating me",
+            "going to hurt", "emergency"],
+    "hi":  ["bachao", "maar raha", "khatra", "madad karo", "darr",
+            "please help", "abhi help", "maar dalega"],
+    "bn":  ["bachao", "sahajjo", "biponno", "marlo", "help"],
+    "ta":  ["help", "udavi", "paayam", "aapatthu"],
+    "te":  ["help", "sahayam", "provaadam", "chantham"],
+    "mr":  ["bachao", "madad", "dhoka", "maar"],
+}
+
+def detect_emergency(message: str) -> bool:
+    msg_lower = message.lower()
+    for lang_keywords in EMERGENCY_KEYWORDS.values():
+        if any(kw in msg_lower for kw in lang_keywords):
+            return True
+    return False
+
+
+# ── intent classifier ─────────────────────────────────────────────────────────
+def classify_intent(message: str, history: list) -> list[str]:
+    """
+    Classifies which agents should handle this message.
+    Returns list of agent names to activate.
+    """
+    msg_lower = message.lower()
+    agents    = ["legal"]   # legal retriever always runs
+
+    # document drafter
+    doc_type = detect_document_type(message)
+    if doc_type != "none":
+        agents.append("document")
+
+    # resource locator
+    if needs_location(message):
+        agents.append("resource")
+
+    # safety planner — activate when user describes their situation
+    safety_triggers = [
+        "what should i do", "what do i do", "help me", "how do i",
+        "i am scared", "i am in danger", "he beats", "he hits",
+        "my husband", "pati", "scared", "afraid", "planning to leave",
+        "want to leave", "need to escape", "need help", "what are my options"
+    ]
+    situation = extract_situation_from_history(history)
+    if any(t in msg_lower for t in safety_triggers) or situation.get("immediate_safety") == "danger":
+        agents.append("safety")
+
+    # always add resource if safety is activated (user needs help finding places)
+    if "safety" in agents and "resource" not in agents:
+        agents.append("resource")
+
+    return agents
+
+
+# ── node functions ────────────────────────────────────────────────────────────
+
+def router_node(state: SakhiBotState) -> SakhiBotState:
+    """Classifies the message and sets activated_agents."""
+    message  = state["message"]
+    history  = state.get("history", [])
+
+    is_emergency     = detect_emergency(message)
+    activated_agents = classify_intent(message, history)
+
+    # emergency always gets resource + safety
+    if is_emergency:
+        for a in ["resource", "safety", "legal"]:
+            if a not in activated_agents:
+                activated_agents.append(a)
+
+    return {
+        **state,
+        "is_emergency":     is_emergency,
+        "activated_agents": activated_agents
+    }
+
+
+def legal_node(state: SakhiBotState) -> SakhiBotState:
+    """Runs Agent 1 — Legal Retriever."""
+    if "legal" not in state.get("activated_agents", []):
+        return {**state, "legal_answer": "", "legal_sources": []}
+
+    result = legal_run(state["message"])
+    return {
+        **state,
+        "legal_answer":  result["answer"],
+        "legal_sources": result["sources"]
+    }
+
+
+def document_node(state: SakhiBotState) -> SakhiBotState:
+    """Runs Agent 2 — Document Drafter."""
+    if "document" not in state.get("activated_agents", []):
         return {
-            "answer": "🚨 EMERGENCY MODE ACTIVATED\n\n" + emergency_card,
-            "safety_plan": emergency_plan["immediate_actions"],
-            "resources": self.resource_locator.get_emergency_contacts(),
-            "is_emergency": True,
-            "priority": "CRITICAL"
-        }
-    
-    def _handle_legal_query(self, message: str):
-        """Handle legal information queries"""
-        # Retrieve relevant legal context
-        retrieval_result = self.legal_retriever.retrieve(message)
-        
-        if retrieval_result.get("error"):
-            return {
-                "answer": "Knowledge base not ready. Please run ingest.py to load legal documents.",
-                "sources": [],
-                "error": retrieval_result["error"]
+            **state,
+            "doc_result": {
+                "needs_document": False,
+                "document_ready": False,
+                "document_type":  "",
+                "next_question":  "",
+                "message":        ""
             }
-        
-        # Get context for LLM
-        context = self.legal_retriever.get_context(message)
-        
-        # Generate answer using LLM
-        if self.llm:
-            answer = self._generate_llm_response(message, context)
-        else:
-            answer = "LLM not configured. Add GROQ_API_KEY to .env file."
-        
-        return {
-            "answer": answer,
-            "sources": retrieval_result["sources"],
-            "chunks": retrieval_result["chunks"]
         }
-    
-    def _handle_document_request(self, message: str, context: dict):
-        """Handle document drafting requests"""
-        details = context or {}
-        
-        if "fir" in message.lower():
-            doc = self.doc_drafter.draft_fir(details)
-        else:
-            doc = self.doc_drafter.draft_complaint(details)
-        
+
+    result = doc_run(state["message"], state.get("history", []))
+    return {**state, "doc_result": result}
+
+
+def resource_node(state: SakhiBotState) -> SakhiBotState:
+    """Runs Agent 3 — Resource Locator."""
+    if "resource" not in state.get("activated_agents", []):
         return {
-            "answer": f"I've prepared a {doc['document_type']} draft for you. Please review and fill in the required details.",
-            "document": doc["content"],
-            "document_ready": True,
-            "document_type": doc["document_type"]
+            **state,
+            "resource_result": {
+                "resources":      [],
+                "helplines":      [],
+                "message":        "",
+                "asking_for":     "",
+                "location_found": False
+            }
         }
-    
-    def _handle_resource_request(self, message: str, context: dict):
-        """Handle resource location requests"""
-        city = context.get("city") if context else None
-        resources = self.resource_locator.get_all_resources(city)
-        
-        answer = f"Here are the resources available"
-        if city:
-            answer += f" in {city}"
-        answer += ":\n\n"
-        
+
+    result = resource_run(
+    state["message"],
+    district=state.get("district", ""),
+    state=state.get("state_name", "")
+    )
+    return {**state, "resource_result": result}
+
+def safety_node(state: SakhiBotState) -> SakhiBotState:
+    """Runs Agent 4 — Safety Planner."""
+    if "safety" not in state.get("activated_agents", []):
         return {
-            "answer": answer,
-            "resources": resources,
-            "helplines": resources["helplines"]
+            **state,
+            "safety_result": {
+                "plan_steps":    [],
+                "plan_text":     "",
+                "is_urgent":     False,
+                "next_question": "",
+                "ready":         False
+            }
         }
-    
-    def _handle_safety_plan(self, message: str, context: dict):
-        """Handle safety planning requests"""
-        situation = context.get("situation", "domestic_violence") if context else "domestic_violence"
-        plan = self.safety_planner.create_plan(situation, context)
-        
-        return {
-            "answer": f"I've created a personalized safety plan for your situation.",
-            "safety_plan": plan["steps"],
-            "priority": plan["priority"]
-        }
-    
-    def _generate_llm_response(self, query: str, context: str):
-        """Generate response using Groq LLM"""
-        system_prompt = """You are SakhiBot, a legal rights assistant for Indian women.
-        
-Your role:
-- Provide accurate legal information based on Indian law
-- Be empathetic and supportive
-- Use simple, clear language
-- Never give personal opinions, only cite actual law
-- If unsure, say so clearly
 
-Answer based ONLY on the provided legal context. Do not make up information."""
+    result = safety_run(state["message"], state.get("history", []))
+    return {**state, "safety_result": result}
 
-        user_prompt = f"""{context}
 
-QUESTION: {query}
+def synthesizer_node(state: SakhiBotState) -> SakhiBotState:
+    """
+    Combines all agent outputs into one clean response.
+    """
+    legal_answer    = state.get("legal_answer", "")
+    doc_result      = state.get("doc_result", {})
+    resource_result = state.get("resource_result", {})
+    safety_result   = state.get("safety_result", {})
+    is_emergency    = state.get("is_emergency", False)
 
-Provide a clear, accurate answer based on the legal information above."""
+    # build final answer
+    answer_parts = []
 
-        try:
-            response = self.llm.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.3,
-                max_tokens=500
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"Error generating response: {str(e)}"
+    # emergency banner first
+    if is_emergency:
+        answer_parts.append(
+            "🚨 I can see you may be in danger. "
+            "Please call 181 (Women's Helpline) immediately — "
+            "they can send help to your location.\n"
+        )
+
+    # document drafter message (overrides legal if collecting details)
+    if doc_result.get("needs_document") and doc_result.get("message"):
+        answer_parts.append(doc_result["message"])
+    elif legal_answer:
+        answer_parts.append(legal_answer)
+
+    # resource message
+    resource_msg = resource_result.get("message", "")
+    if resource_msg and resource_msg not in answer_parts:
+        answer_parts.append(resource_msg)
+
+    # safety plan
+    safety_plan  = safety_result.get("plan_steps", [])
+    safety_ready = safety_result.get("ready", False)
+    if safety_ready and safety_plan:
+        answer_parts.append(
+            "\n📋 Here is your step-by-step safety plan:"
+        )
+
+    final_answer = "\n\n".join(filter(None, answer_parts))
+
+    if not final_answer:
+        final_answer = (
+            "I am here to help you. Could you tell me more about your situation "
+            "so I can give you the right guidance?"
+        )
+
+    return {
+        **state,
+        "final_answer":    final_answer,
+        "final_sources":   state.get("legal_sources", []),
+        "final_resources": resource_result.get("resources", []),
+        "final_helplines": resource_result.get("helplines", []),
+        "final_plan":      safety_plan,
+        "document_ready":  doc_result.get("document_ready", False),
+        "document_type":   doc_result.get("document_type", ""),
+        "next_question":   doc_result.get("next_question", ""),
+        "asking_location": resource_result.get("asking_for") == "location"
+    }
+
+
+# ── build the LangGraph ───────────────────────────────────────────────────────
+def build_graph():
+    graph = StateGraph(SakhiBotState)
+
+    # add nodes
+    graph.add_node("router",       router_node)
+    graph.add_node("legal",        legal_node)
+    graph.add_node("document",     document_node)
+    graph.add_node("resource",     resource_node)
+    graph.add_node("safety",       safety_node)
+    graph.add_node("synthesizer",  synthesizer_node)
+
+    # entry point
+    graph.set_entry_point("router")
+
+    # router → all agents in parallel (LangGraph runs sequentially here)
+    graph.add_edge("router",      "legal")
+    graph.add_edge("legal",       "document")
+    graph.add_edge("document",    "resource")
+    graph.add_edge("resource",    "safety")
+    graph.add_edge("safety",      "synthesizer")
+    graph.add_edge("synthesizer", END)
+
+    return graph.compile()
+
+
+# compile once at import
+_graph = build_graph()
+print("LangGraph orchestrator compiled successfully.")
+
+
+# ── public run function ───────────────────────────────────────────────────────
+def run(
+    message:   str,
+    language:  str  = "en",
+    history:   list = [],
+    district:  str  = "",
+    state_name: str = ""
+) -> dict:
+    """
+    Main entry point for the full SakhiBot pipeline.
+
+    Input:
+        message:    user's message (in English — translation handled in main.py)
+        language:   detected language code
+        history:    full conversation history
+        district:   user's district (optional)
+        state_name: user's state (optional)
+
+    Output: full response dict ready for FastAPI
+    """
+    initial_state: SakhiBotState = {
+        "message":          message,
+        "language":         language,
+        "history":          history,
+        "district":         district,
+        "state_name":       state_name,
+        "activated_agents": [],
+        "is_emergency":     False,
+        "legal_answer":     "",
+        "legal_sources":    [],
+        "doc_result":       {},
+        "resource_result":  {},
+        "safety_result":    {},
+        "final_answer":     "",
+        "final_sources":    [],
+        "final_resources":  [],
+        "final_helplines":  [],
+        "final_plan":       [],
+        "document_ready":   False,
+        "document_type":    "",
+        "next_question":    "",
+        "asking_location":  False
+    }
+
+    result = _graph.invoke(initial_state)
+
+    return {
+        "answer":           result["final_answer"],
+        "sources":          result["final_sources"],
+        "resources":        result["final_resources"],
+        "helplines":        result["final_helplines"],
+        "safety_plan":      result["final_plan"],
+        "document_ready":   result["document_ready"],
+        "document_type":    result["document_type"],
+        "next_question":    result["next_question"],
+        "is_emergency":     result["is_emergency"],
+        "activated_agents": result["activated_agents"],
+        "asking_location":  result["asking_location"]
+    }

@@ -1,0 +1,43 @@
+{
+  "timestamp": 1780234770.1761491,
+  "query": "What is domestic violence?",
+  "data": {
+    "answer": "Domestic violence means any act, omission, or commission or conduct of the respondent that harms or injures or endangers the health, safety, life, limb, or well-being, whether mental or physical, of the aggrieved person. It includes physical abuse, sexual abuse, verbal and emotional abuse, and economic abuse. (Section 3 of the Act)\n\nPractical next step: If you or someone you know is experiencing domestic violence, please reach out to the local authorities or a trusted person for help. You can also contact the National Commission for Women (NCW) or the National Domestic Violence Helpline (NDAH) for support and guidance.",
+    "sources": [
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 8
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 4
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 9
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 30
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 12
+      }
+    ],
+    "chunks": [
+      "the aggrieved person and the respondent, or owned or tenanted by either of them in respect of which either the aggrieved person or the respondent or both jointly or singly have any right, title, interest or equity and includes such a household which may belong to the joint family of which the respondent is a member, irrespective of whether the respondent or the aggrieved person has any right, title or interest in the shared household; (t) “shelter home” means any shelter home as may be notified by the State Government to be as helter home for the purposes of this Act. CHAPTER II DOMESTIC VIOLENCE 3. Definition of domestic violence.—For the purposes of this Act, any act, omission or commission or conduct of the respondent shall constitute domestic violence in case it— (a) harms or injures or endangers the health, safety, life, limb or well-being, whether mental or physical, of",
+      "made in the prescribed form on receipt of a complaint of domestic violence from an aggrieved person; (f) “domestic relationship” means a relationship between two persons who live or have, at any point of time, lived together in a shared household, when they are related by consanguinity, marriage, or through a relationship in the nature of marriage, adoption or are family members living together as a joint family; (g) “domestic violence” has the same meaning as assigned to it in section 3; (h) “dowry” shall have the same meaning as assigned to it in section 2 of the Dowry Prohibition Act, 1961 (28 of 1961); (i) “Magistrate” means the Judicial Magistrate of the first class, or as the case may be, the Metropolitan Magistrate, exercising jurisdiction under the Code of Criminal Procedure, 1973(2 of 1974) in the area where the aggrieved person resides temporarily or otherwise or the respondent resides",
+      "or conduct of the respondent shall constitute domestic violence in case it— (a) harms or injures or endangers the health, safety, life, limb or well-being, whether mental or physical, of the aggrieved person or tends to do so and includes causing physical abuse, sexual abuse, verbal and emotional abuse and economic abuse; or (b) harasses, harms, injures or endangers the aggrieved person with a view to coerce her or any other person related to her to meet any unlawful demand for any dowry or other property or valuable security; or (c) has the effect of threatening the aggrieved person or any person related to her by any conduct mentioned in clause (a) or clause (b); or (d) otherwise injures or causes harm, whether physical or mental, to the aggrieved person. Explanation I.—For the purposes of this section,— (i) “physical abuse” means any act or conduct which is of such a",
+      "a child, its school or any other place frequented by the aggrieved person; (d) attempting to communicate in any form, whatsoever, with the aggrieved person, including personal, oral or written or electronic or telephonic contact; (e) alienating any assets, operating bank lockers or bank accounts used or held or enjoyed by both the parties, jointly by the aggrieved person and the respondent or singly by the respondent, including her stridhan or any other property held either jointly by the parties or separately by them without the leave of the Magistrate; (f) causing violence to the dependants, other relatives or any person who give the aggrieved person assistance from domestic violence; (g) committing any other act as specified in the protection order. 19. Residence orders.—(1) While disposing of an application under sub-section (1) of section12, the Magistrate may, on being satisfied that domestic violence has taken place, pass a residence order—",
+      "the aggrieved person has an interest or is entitled to use by virtue of the domestic relationship or which may be reasonably required by the aggrieved person or her children or her stridhan or any other property jointly or separately held by the aggrieved person; and (c) prohibition or restriction to continued access to resources or facilities which the aggrieved person is entitled to use or enjoy by virtue of the domestic relationship including access to the shared household. Explanation II.—For the purpose of determining whether any act, omission, commission or conduct of the respondent constitutes “domestic violence” under this section, the overall facts and circumstances of the case shall be taken into consideration. CHAPTER III POWERS AND DUTIES OF PROTECTION OFFICERS, SERVICE PROVIDERS, ETC. 4. Information to Protection Officer and exclusion of liability of informant.—(1) Any person who has reason to believe that an act of domestic violence has"
+    ],
+    "confidence": "high",
+    "query": "What is domestic violence?"
+  }
+}

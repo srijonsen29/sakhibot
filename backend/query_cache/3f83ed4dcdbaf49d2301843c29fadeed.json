@@ -1,0 +1,43 @@
+{
+  "timestamp": 1780235106.6744175,
+  "query": "Centers near me?",
+  "data": {
+    "answer": "I could not find this specific information in my knowledge base. Please consult a lawyer or call 181 (Women's Helpline) for help.",
+    "sources": [
+      {
+        "source": "POSH Act 2013",
+        "filename": "posh_act_2013.pdf",
+        "chunk_index": 40
+      },
+      {
+        "source": "Code of Criminal Procedure",
+        "filename": "crpc.pdf",
+        "chunk_index": 50
+      },
+      {
+        "source": "POSH Act 2013",
+        "filename": "posh_act_2013.pdf",
+        "chunk_index": 39
+      },
+      {
+        "source": "Equal Remuneration Act",
+        "filename": "equal_remuneration_act.pdf",
+        "chunk_index": 12
+      },
+      {
+        "source": "Code of Criminal Procedure",
+        "filename": "crpc.pdf",
+        "chunk_index": 49
+      }
+    ],
+    "chunks": [
+      "conspicuous place in the workplace, the penal consequences of sexual harassments; and the order constituting, the Internal Committee under sub-section (1) of section 4; (c) organise workshops and awareness programmes at regular intervals for sensitising the employees with the provisions of the Act and orientation programmes for the members of the Internal Committee in the manner as may be prescribed; (d) provide necessary facilities to the Internal Committee or the Local Committee, as the case may be, for dealing with the complaint and conducting an inquiry; (e) assist in securing the attendance of respondent and witnesses before the Internal Committee or the Local Committee, as the case may be; (f) make available such information to the Internal Committee or the Local Committee, as the case be, as it may require having regard to the complaint made under sub-section (1) of section 9; (g) provide assistance to the woman if she",
+      "shall, in relation to such Magistrate, throughout the area within his local jurisdiction, be construed, unless the context otherwise requires, as a reference to the Court of Session, Chief Judicial Magistrate, or Chief Metropolitan Magistrate, as the case may be, exercising jurisdiction in relation to the said district or metropolitan area.] 15. Subordination of Judicial Magistrates.—(1) Every Chief Judicial Magistrate shall be subordinate to the Sessions Judge; and every other Judicial Magistrate shall, subject to the general control of the Sessions Judge, be subordinate to the Chief Judicial Magistrate. (2) The Chief Judicial Magistrate may, from time to time, make rules or give special orders, consistent with this Code, as to the distribution of business among the Judicial Magistrates subordinate to him. 16. Courts of Metropolitan Magistrates.—(1) In every metropolitan area, there shall be established as many Courts of Metropolitan Magistrates, and at such places, as the State Government may, after consultation with the High Court, by notification, specify. (2) The presiding officers of such Courts shall be appointed by the High Court. (3) The jurisdiction and powers of every Metropolitan Magistrate shall extend throughout the metropolitan area. 17. Chief Metropolitan Magistrate and Additional Chief Metropolitan Magistrate.—(1) The High Court shall, in relation to every metropolitan area within its local jurisdiction, appoint a Metropolitan Magistrate to be the Chief Metropolitan Magistrate for such metropolitan area. (2) The High Court may appoint any Metropolitan Magistrate to be an Additional Chief Metropolitan Magistrate, and such Magistrate shall have all or any of",
+      "non-implementation of such recommendations may prefer an appeal to the court or tribunal in accordance with the provisions of the service rules applicable to the said person or where no such service rules exist then, without prejudice to provisions contained in any other law for the time being in force, the person aggrieved may prefer an appeal in such manner as may be prescribed. (2) The appeal under sub-section (1) shall be preferred within a period of ninety days of the recommendations. CHAPTER VI DUTIES OF EMPLOYER 19. Duties of employer.— Every employer shall— (a) provide a safe working environment at the workplace with shall include safety from the persons coming into contact at the workplace; (b) display at any conspicuous place in the workplace, the penal consequences of sexual harassments; and the order constituting, the Internal Committee under sub-section (1) of section 4; (c) organise workshops and awareness programmes",
+      "the extent to which women may be employed in such establishments or employments as the Central Government may, by notification, specify in this behalf. (2) Every Advisory Committee shall consist of not less than ten persons, to be nominated by the appropriate Government, of which one-half shall be women. (3) In tendering its advice, the Advisory Committee shall have regard to the number of women employed in the concerned establishment or employment, the nature of work, hours of work, suitability of women for employment, as the case may be, the need for providing increasing employment opportunities for women, including part-time",
+      "1973 (2 of 1974) in its application to the State of Himachal Pradesh for the words “in any district” the words “in any local area” shall be substituted. [Vide Himachal Pradesh Act 40 of 1976, s. 2.] 14. Local jurisdiction of Judicial Magistrates.—(1) Subject to the control of the High Court, the Chief Judicial Magistrate may, from time to time, define the local limits of the areas within which the Magistrates appointed under section 11 or under section 13 may exercise all or any of the powers with which they may respectively be invested under this Code: 1[Provided that the Court of Special Judicial Magistrate may hold its sitting at any place within the local area for which it is established.] (2) Except as otherwise provided by such definition, the jurisdiction and powers of every such Magistrate shall extend throughout the district. 2[(3) Where the local jurisdiction of a Magistrate, appointed under section 11 or section 13 or section 18, extends to an area beyond the district, or the metropolitan area, as the case may be, in which he ordinarily holds Court, any reference in this Code to the Court of Session, Chief Judicial Magistrate or the Chief Metropolitan Magistrate shall, in relation to such Magistrate, throughout the area within his local jurisdiction, be construed, unless the context otherwise requires, as a reference to the Court of Session, Chief Judicial Magistrate, or Chief Metropolitan Magistrate, as the case may be, exercising jurisdiction in relation to the said district or metropolitan"
+    ],
+    "confidence": "high",
+    "query": "Centers near me?"
+  }
+}

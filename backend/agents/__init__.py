@@ -1,1 +1,1 @@
-# Agent modules for SakhiBot
+# SakhiBot agents package
