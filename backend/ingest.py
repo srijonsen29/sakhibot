@@ -1,8 +1,15 @@
 import os
+import sys
 import fitz
 import chromadb
 from sentence_transformers import SentenceTransformer
-from config import CHROMA_PATH, EMBED_MODEL
+from core.config import CHROMA_PATH, EMBED_MODEL
+
+# Set UTF-8 encoding for Windows console
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
 print("Loading embedding model...")
 model = SentenceTransformer(EMBED_MODEL)
@@ -90,15 +97,15 @@ for filename, cfg in CONFIGS.items():
     path = os.path.join(DOCS, filename)
     if not os.path.exists(path):
         print(f"NOT FOUND: {filename}")
-        summary.append((cfg["name"], 0, "❌ FILE NOT FOUND"))
+        summary.append((cfg["name"], 0, "[X] FILE NOT FOUND"))
         continue
 
     text, pages_ok, pages_total = extract_text(path)
     coverage = pages_ok / pages_total * 100 if pages_total else 0
 
     if not text.strip() or pages_ok < 2:
-        print(f"⚠ {filename}: only {pages_ok}/{pages_total} pages have text — scanned PDF!")
-        summary.append((cfg["name"], 0, "❌ SCANNED — re-download needed"))
+        print(f"[!] {filename}: only {pages_ok}/{pages_total} pages have text — scanned PDF!")
+        summary.append((cfg["name"], 0, "[X] SCANNED — re-download needed"))
         continue
 
     words = len(text.split())
@@ -124,7 +131,7 @@ for filename, cfg in CONFIGS.items():
         chunk_id += len(batch)
 
     total += len(chunks)
-    summary.append((cfg["name"], len(chunks), "✓"))
+    summary.append((cfg["name"], len(chunks), "[OK]"))
 
 # ── summary ───────────────────────────────────────────────────────────────────
 print(f"\n{'='*55}")
@@ -133,15 +140,15 @@ print(f"{'='*55}")
 print(f"{'Document':<35} {'Chunks':>6}  Status")
 print("-"*55)
 for name, count, status in summary:
-    bar = "█" * min(count // 2, 25)
+    bar = "=" * min(count // 2, 25)
     print(f"{name:<35} {count:>6}  {status} {bar}")
 
 # ── DV Act check ──────────────────────────────────────────────────────────────
 dv = next((c for n, c, _ in summary if "Domestic Violence" in n), 0)
 if dv == 0:
-    print("\n❌ CRITICAL: DV Act still 0 chunks!")
+    print("\n[X] CRITICAL: DV Act still 0 chunks!")
     print("   Your file is probably named wrong.")
     print("   Run: ls docs/ and check the exact filename.")
     print("   It must be exactly: dv_act_2005.pdf")
 else:
-    print(f"\n✓ DV Act has {dv} chunks — good!")
+    print(f"\n[OK] DV Act has {dv} chunks — good!")
