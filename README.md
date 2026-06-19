@@ -1,19 +1,29 @@
-# SakhiBot — Women's Legal Rights AI Assistant
+# SakhiBot — Women's Legal Rights & Emergency Response AI
 
 > Aapka haq, aapki bhasha mein (Your rights, in your language)
 
-An agentic, multilingual AI chatbot that helps Indian women know their legal rights — in Hindi, Bengali, Tamil, and more. Built as a Final Year Project.
+An agentic, multilingual AI platform that helps Indian women know their legal rights AND stay safe with integrated emergency response features — in Hindi, Bengali, Tamil, and more.
 
 ---
 
 ## 🌟 What it does
 
+### Legal Rights & Support:
 - ✅ Answers legal questions grounded in actual Indian law (no hallucination)
 - ✅ Generates filled FIR drafts and complaint documents ready to print
 - ✅ Finds nearest shelters, One Stop Centres, and helplines by district
 - ✅ Builds a personalised step-by-step safety plan
 - ✅ Supports voice input and text-to-speech in multiple Indian languages
-- ✅ Emergency mode — instant SOS card with 181, 100, nearest shelter
+
+### 🚨 NEW: Emergency Response Features:
+- 🆘 **SOS Button** - instant alerts to trusted guardians with GPS location
+- 📍 **Live Location Sharing** - real-time tracking for safety
+- 📱 **Multi-Channel Alerts** - SMS, WhatsApp, and voice calls
+- 👥 **Guardian Network** - manage trusted emergency contacts
+- 🚓 **Police Station Locator** - find nearest help with contact info
+- 🔒 **Privacy Compliant** - DPDP Act 2023 & IT Act 2000 compliant consent management
+
+[📖 See Emergency Features Documentation](EMERGENCY_FEATURES.md) | [🔌 Integration Guide](backend/INTEGRATION_GUIDE.md)
 
 ---
 
