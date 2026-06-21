@@ -4,6 +4,9 @@ from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 import traceback
 
+from auth import router as auth_router
+from database import Base, engine
+import models
 from translate  import detect_language, translate_to_english, translate_from_english
 from emergency  import detect_emergency, build_emergency_response
 from orchestrator import run as orchestrate
@@ -14,11 +17,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+Base.metadata.create_all(bind=engine)
+app.include_router(auth_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "https://sakhibot.vercel.app",   # update with your Vercel URL
     ],
     allow_credentials=True,

@@ -121,7 +121,9 @@
       "address": "R G Kar Medical College, Kolkata 700004",
       "phone": "03325551234",
       "open_hours": "24x7",
-      "type": "osc"
+      "type": "osc",
+      "lat": 22.6044,
+      "lng": 88.3786
     },
     {
       "name": "One Stop Centre — Kolkata South",
@@ -130,7 +132,9 @@
       "address": "SSKM Hospital, AJC Bose Road, Kolkata 700020",
       "phone": "03322235678",
       "open_hours": "24x7",
-      "type": "osc"
+      "type": "osc",
+      "lat": 22.5397,
+      "lng": 88.3416
     },
     {
       "name": "One Stop Centre — Howrah",
@@ -139,7 +143,9 @@
       "address": "Howrah District Hospital, Howrah 711101",
       "phone": "03326384444",
       "open_hours": "24x7",
-      "type": "osc"
+      "type": "osc",
+      "lat": 22.5867,
+      "lng": 88.3103
     },
     {
       "name": "One Stop Centre — Chennai",
@@ -366,7 +372,9 @@
       "address": "Salt Lake Sector 3, Kolkata 700097",
       "phone": "03323590000",
       "open_hours": "24x7",
-      "type": "shelter"
+      "type": "shelter",
+      "lat": 22.5769,
+      "lng": 88.413
     },
     {
       "name": "Short Stay Home — Chennai",
@@ -432,6 +440,140 @@
       "type": "shelter"
     }
   ],
+  "police_stations": [
+    {
+      "name": "Kolkata Police Headquarters / Lalbazar",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "18 Lalbazar Street, B.B.D. Bagh, Kolkata 700001",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5729,
+      "lng": 88.3504
+    },
+    {
+      "name": "Park Street Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "89 Park Street, Kolkata 700016",
+      "phone": "03322297460",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5536,
+      "lng": 88.3616
+    },
+    {
+      "name": "New Market Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Kolkata 700087",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5605,
+      "lng": 88.3529
+    },
+    {
+      "name": "Bhowanipore Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Bhowanipore, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5331,
+      "lng": 88.3463
+    },
+    {
+      "name": "Kalighat Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Kalighat, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5195,
+      "lng": 88.3426
+    },
+    {
+      "name": "Alipore Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Alipore, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5335,
+      "lng": 88.331
+    },
+    {
+      "name": "Ballygunge Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Ballygunge, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5277,
+      "lng": 88.3683
+    },
+    {
+      "name": "Jadavpur Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Jadavpur, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.4961,
+      "lng": 88.3703
+    },
+    {
+      "name": "Tollygunge Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Tollygunge, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.4966,
+      "lng": 88.3454
+    },
+    {
+      "name": "Maniktala Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Maniktala, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5842,
+      "lng": 88.3803
+    },
+    {
+      "name": "Shyampukur Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Shyampukur, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5974,
+      "lng": 88.365
+    },
+    {
+      "name": "Ultadanga Police Station",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "address": "Ultadanga, Kolkata",
+      "phone": "100",
+      "open_hours": "24x7",
+      "type": "police",
+      "lat": 22.5905,
+      "lng": 88.392
+    }
+  ],
   "legal_aid_offices": [
     {
       "name": "DLSA Mumbai",
@@ -458,7 +600,9 @@
       "address": "High Court, Kolkata 700001",
       "phone": "03322130000",
       "open_hours": "Mon-Sat 10am-5pm",
-      "type": "legal_aid"
+      "type": "legal_aid",
+      "lat": 22.5689,
+      "lng": 88.3436
     },
     {
       "name": "DLSA Chennai",

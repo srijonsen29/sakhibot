@@ -7,6 +7,46 @@ const client = axios.create({
   timeout: 30000,
 })
 
+client.interceptors.request.use(config => {
+  const token = localStorage.getItem('sakhibot_token')
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+
+  return config
+})
+
+export function saveAuthToken(token) {
+  localStorage.setItem('sakhibot_token', token)
+}
+
+export function clearAuthToken() {
+  localStorage.removeItem('sakhibot_token')
+}
+
+export async function signupUser({ name, email, password }) {
+  const res = await client.post('/api/auth/signup', {
+    name,
+    email,
+    password,
+  })
+  return res.data
+}
+
+export async function loginUser({ email, password }) {
+  const res = await client.post('/api/auth/login', {
+    email,
+    password,
+  })
+  return res.data
+}
+
+export async function getCurrentUser() {
+  const res = await client.get('/api/auth/me')
+  return res.data
+}
+
 export async function sendMessage({
   message,
   language = '',

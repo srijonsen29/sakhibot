@@ -13,3 +13,7 @@ python-docx
 reportlab
 python-dotenv
 pydantic
+sqlalchemy
+passlib[bcrypt]
+python-jose[cryptography]
+email-validator
