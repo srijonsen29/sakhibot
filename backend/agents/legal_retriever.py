@@ -1,8 +1,8 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
-from config import CHROMA_PATH, EMBED_MODEL, TOP_K
-from cache import get as cache_get, set as cache_set
-from groq_client import chat as groq_chat
+from core.config import CHROMA_PATH, EMBED_MODEL, TOP_K
+from core.cache import get as cache_get, set as cache_set
+from core.groq_client import chat as groq_chat
 
 # ── initialise clients ───────────────────────────────────────────────────────
 print("Initialising Legal Retriever...")

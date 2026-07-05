@@ -1,6 +1,6 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
-from config import CHROMA_PATH, EMBED_MODEL, TOP_K
+from core.config import CHROMA_PATH, EMBED_MODEL, TOP_K
 
 model = SentenceTransformer(EMBED_MODEL)
 client = chromadb.PersistentClient(path=CHROMA_PATH)

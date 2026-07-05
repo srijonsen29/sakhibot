@@ -7,18 +7,23 @@ import traceback
 from auth import router as auth_router
 from database import Base, engine
 import models
-from translate  import detect_language, translate_to_english, translate_from_english
-from emergency  import detect_emergency, build_emergency_response
+from core.translate  import detect_language, translate_to_english, translate_from_english, get_language_name
+from core.emergency  import detect_emergency, build_emergency_response
 from orchestrator import run as orchestrate
+from routes.emergency import router as emergency_router
+from routes.consent import router as consent_router
 
 app = FastAPI(
     title="SakhiBot API",
     description="AI-powered women's legal rights assistant for India",
-    version="1.0.0"
+    version="2.0.0"
 )
-
 Base.metadata.create_all(bind=engine)
+
+# Include routers
 app.include_router(auth_router)
+app.include_router(emergency_router)
+app.include_router(consent_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -101,7 +106,6 @@ async def chat(req: ChatRequest):
 
         # ── step 1: detect language ───────────────────────────────────────────
         detected_lang = req.language if req.language else detect_language(message)
-        from translate import get_language_name
         language_name = get_language_name(detected_lang)
 
         print(f"\n{'='*50}")

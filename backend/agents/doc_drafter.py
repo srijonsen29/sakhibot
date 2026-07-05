@@ -7,7 +7,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from groq import Groq
-from config import GROQ_API_KEY, LLM_MODEL
+from core.config import GROQ_API_KEY, LLM_MODEL
 
 _groq_client = Groq(api_key=GROQ_API_KEY)
 

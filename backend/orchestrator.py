@@ -5,7 +5,7 @@ from agents.legal_retriever  import run as legal_run
 from agents.doc_drafter      import run as doc_run, detect_document_type
 from agents.resource_locator import run as resource_run, needs_location
 from agents.safety_planner   import run as safety_run, extract_situation_from_history
-from groq_client             import chat as groq_chat
+from core.groq_client        import chat as groq_chat
 
 # ── state definition ──────────────────────────────────────────────────────────
 class SakhiBotState(TypedDict):

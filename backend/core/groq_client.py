@@ -1,6 +1,6 @@
 import time
 from groq import Groq, RateLimitError, APIStatusError
-from config import GROQ_API_KEY, LLM_MODELS
+from core.config import GROQ_API_KEY, LLM_MODELS
 
 _client = Groq(api_key=GROQ_API_KEY)
 
