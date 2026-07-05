@@ -12,6 +12,7 @@ import {
   getCurrentUser,
   loginUser,
   saveAuthToken,
+  sendImageMessage,
   sendMessage,
   signupUser,
 } from './api'
@@ -136,21 +137,38 @@ export default function App() {
     setPermissionGranted(true)
   }
 
-  const handleSend = async text => {
-    if (!text.trim() || loading) return
+  const handleSend = async (text, image) => {
+    const trimmed = text.trim()
+    if ((!trimmed && !image) || loading) return
 
-    // add user message instantly
-    setMessages(prev => [...prev, { role: 'user', content: text }])
+    // add user message instantly (with a thumbnail if an image was attached)
+    setMessages(prev => [
+      ...prev,
+      {
+        role:         'user',
+        content:      trimmed || (image ? '[Image attached]' : ''),
+        imagePreview: image ? URL.createObjectURL(image) : '',
+      }
+    ])
     setLoading(true)
 
     try {
-      const data = await sendMessage({
-        message:   text,
-        language:  lang,
-        history:   apiHistory,
-        district,
-        stateName,
-      })
+      const data = image
+        ? await sendImageMessage({
+            image,
+            message:  trimmed,
+            language: lang,
+            history:  apiHistory,
+            district,
+            stateName,
+          })
+        : await sendMessage({
+            message:   trimmed,
+            language:  lang,
+            history:   apiHistory,
+            district,
+            stateName,
+          })
 
       // update detected language
       if (data.detected_lang) setLang(data.detected_lang)
@@ -172,6 +190,7 @@ export default function App() {
           severity:        data.severity        || 'none',
           activatedAgents: data.activated_agents|| [],
           detectedLang:    data.detected_lang   || 'en',
+          imageAnalysis:   data.image_analysis  || '',
         }
       ])
     } catch (err) {

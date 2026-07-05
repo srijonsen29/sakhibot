@@ -11,10 +11,22 @@ export default function MessageBubble({ msg, history }) {
   if (isUser) {
     return (
       <div className="mx-auto flex w-full max-w-3xl justify-end px-4 sm:px-6">
-        <div className="max-w-[86%] sm:max-w-[72%] bg-emerald-600 text-white rounded-2xl
-                        rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed
-                        shadow-sm">
-          {msg.content}
+        <div className="max-w-[86%] sm:max-w-[72%] flex flex-col items-end gap-1.5">
+          {msg.imagePreview && (
+            <img
+              src={msg.imagePreview}
+              alt="Attached"
+              className="max-h-48 rounded-2xl rounded-tr-sm border border-emerald-100
+                         object-cover shadow-sm"
+            />
+          )}
+          {msg.content && msg.content !== '[Image attached]' && (
+            <div className="bg-emerald-600 text-white rounded-2xl
+                            rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed
+                            shadow-sm">
+              {msg.content}
+            </div>
+          )}
         </div>
       </div>
     )
@@ -38,6 +50,15 @@ export default function MessageBubble({ msg, history }) {
                           ? 'bg-red-50 border border-red-200 text-red-900'
                           : 'bg-gray-100 text-gray-800'
                         }`}>
+          {msg.imageAnalysis && (
+            <details className="mb-2 text-xs text-gray-500 bg-white/70
+                                rounded-lg px-2.5 py-1.5 border border-gray-200">
+              <summary className="cursor-pointer font-medium text-gray-600">
+                What I read from your image
+              </summary>
+              <p className="mt-1 whitespace-pre-wrap">{msg.imageAnalysis}</p>
+            </details>
+          )}
           <MessageText text={msg.content} />
         </div>
 

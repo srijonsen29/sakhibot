@@ -1,15 +1,31 @@
 import { useState, useRef } from 'react'
 import VoiceButton from './VoiceButton'
+import ImageButton from './ImageButton'
 
 export default function InputBar({ onSend, loading, lang = 'en' }) {
   const [text, setText] = useState('')
+  const [image, setImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
   const inputRef = useRef(null)
+
+  const handleImageSelect = file => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImage(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const removeImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImage(null)
+    setImagePreview('')
+  }
 
   const submit = () => {
     const trimmed = text.trim()
-    if (!trimmed || loading) return
-    onSend(trimmed)
+    if ((!trimmed && !image) || loading) return
+    onSend(trimmed, image)
     setText('')
+    removeImage()
     inputRef.current?.focus()
   }
 
@@ -22,10 +38,37 @@ export default function InputBar({ onSend, loading, lang = 'en' }) {
 
   return (
     <div className="border-t border-gray-100 bg-white px-4 py-3 sm:px-6">
+      {imagePreview && (
+        <div className="mx-auto w-full max-w-3xl pb-2">
+          <div className="relative inline-block">
+            <img
+              src={imagePreview}
+              alt="Selected attachment"
+              className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+            />
+            <button
+              type="button"
+              onClick={removeImage}
+              title="Remove image"
+              className="absolute -top-2 -right-2 w-5 h-5 bg-gray-700
+                         text-white rounded-full text-xs leading-none
+                         flex items-center justify-center hover:bg-gray-900"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
         <VoiceButton
           lang={lang}
           onResult={t => setText(t)}
+          disabled={loading}
+        />
+
+        <ImageButton
+          onSelect={handleImageSelect}
           disabled={loading}
         />
 
@@ -35,7 +78,11 @@ export default function InputBar({ onSend, loading, lang = 'en' }) {
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Type or speak your question..."
+            placeholder={
+              image
+                ? 'Add a note about this image (optional)...'
+                : 'Type or speak your question...'
+            }
             rows={1}
             style={{ resize: 'none' }}
             className="w-full bg-gray-50 border border-gray-200 rounded-2xl
@@ -53,7 +100,7 @@ export default function InputBar({ onSend, loading, lang = 'en' }) {
 
         <button
           onClick={submit}
-          disabled={!text.trim() || loading}
+          disabled={(!text.trim() && !image) || loading}
           className="w-10 h-10 bg-emerald-600 hover:bg-emerald-700
                      disabled:bg-gray-200 text-white rounded-full flex
                      items-center justify-center transition-colors shrink-0"

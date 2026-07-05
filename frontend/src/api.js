@@ -64,6 +64,28 @@ export async function sendMessage({
   return res.data
 }
 
+export async function sendImageMessage({
+  image,
+  message = '',
+  language = '',
+  history = [],
+  district = '',
+  stateName = '',
+}) {
+  const formData = new FormData()
+  formData.append('image', image)
+  formData.append('message', message)
+  formData.append('language', language)
+  formData.append('history', JSON.stringify(history))
+  formData.append('district', district)
+  formData.append('state_name', stateName)
+
+  const res = await client.post('/api/chat/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
 export async function downloadDocument({ documentType, history }) {
   const res = await client.post(
     '/api/document',

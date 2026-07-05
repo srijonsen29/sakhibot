@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
+import json
 import traceback
 
 from auth import router as auth_router
@@ -10,6 +11,7 @@ import models
 from translate  import detect_language, translate_to_english, translate_from_english
 from emergency  import detect_emergency, build_emergency_response
 from orchestrator import run as orchestrate
+from vision import analyze_image
 
 app = FastAPI(
     title="SakhiBot API",
@@ -58,6 +60,7 @@ class ChatResponse(BaseModel):
     asking_location:  bool = False
     detected_lang:    str  = "en"
     language_name:    str  = "English"
+    image_analysis:   str  = ""   # what the vision model read from an uploaded image, if any
 
 class DocumentRequest(BaseModel):
     document_type: str
@@ -87,11 +90,20 @@ def health():
     }
 
 
-# ── main chat endpoint ────────────────────────────────────────────────────────
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
+# ── shared chat pipeline ──────────────────────────────────────────────────────
+# Used by both /api/chat (text) and /api/chat/image (image + optional text),
+# so language detection, emergency checks, translation, and the LangGraph
+# orchestrator only need to live in one place.
+async def process_chat_message(
+    message:    str,
+    language:   str  = "",
+    history:    list = None,
+    district:   str  = "",
+    state_name: str  = "",
+) -> ChatResponse:
+    history = history or []
     try:
-        message = req.message.strip()
+        message = message.strip()
         if not message:
             return ChatResponse(
                 answer="Please type or speak your question.",
@@ -100,7 +112,7 @@ async def chat(req: ChatRequest):
             )
 
         # ── step 1: detect language ───────────────────────────────────────────
-        detected_lang = req.language if req.language else detect_language(message)
+        detected_lang = language if language else detect_language(message)
         from translate import get_language_name
         language_name = get_language_name(detected_lang)
 
@@ -129,7 +141,7 @@ async def chat(req: ChatRequest):
 
         # also translate history user messages for context
         translated_history = []
-        for msg in req.history:
+        for msg in history:
             if isinstance(msg, dict):
                 if msg.get("role") == "user" and detected_lang != "en":
                     translated_content = translate_to_english(
@@ -147,8 +159,8 @@ async def chat(req: ChatRequest):
             message=english_message,
             language=detected_lang,
             history=translated_history,
-            district=req.district,
-            state_name=req.state_name
+            district=district,
+            state_name=state_name
         )
 
         print(f"[ORCHESTRATOR] agents={result['activated_agents']}")
@@ -198,6 +210,93 @@ async def chat(req: ChatRequest):
                 "Please try again or call 181 (Women's Helpline) for immediate help."
             ),
             is_emergency=False,
+            detected_lang="en",
+            language_name="English"
+        )
+
+
+# ── main chat endpoint (text) ─────────────────────────────────────────────────
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat(req: ChatRequest):
+    return await process_chat_message(
+        message=req.message,
+        language=req.language,
+        history=req.history,
+        district=req.district,
+        state_name=req.state_name,
+    )
+
+
+# ── chat endpoint with image upload ───────────────────────────────────────────
+MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8MB — keep in sync with frontend limit
+
+@app.post("/api/chat/image", response_model=ChatResponse)
+async def chat_with_image(
+    image:      UploadFile = File(...),
+    message:    str        = Form(""),
+    language:   str        = Form(""),
+    history:    str        = Form("[]"),   # JSON-encoded list, since multipart forms are flat
+    district:   str        = Form(""),
+    state_name: str        = Form(""),
+):
+    try:
+        if not (image.content_type or "").startswith("image/"):
+            return ChatResponse(
+                answer="Please upload a valid image file (JPG, PNG, etc.).",
+                detected_lang="en",
+                language_name="English"
+            )
+
+        image_bytes = await image.read()
+        if len(image_bytes) > MAX_IMAGE_BYTES:
+            return ChatResponse(
+                answer="That image is too large. Please upload a file under 8MB.",
+                detected_lang="en",
+                language_name="English"
+            )
+
+        try:
+            history_list = json.loads(history)
+            if not isinstance(history_list, list):
+                history_list = []
+        except (json.JSONDecodeError, TypeError):
+            history_list = []
+
+        print(f"\n{'='*50}")
+        print(f"[REQUEST][image] {image.filename} ({len(image_bytes)} bytes)")
+
+        vision_text = analyze_image(image_bytes, image.content_type or "image/jpeg")
+        typed_text  = message.strip()
+
+        if not vision_text:
+            # vision model failed — fall back to whatever the user typed, if anything
+            combined_message = typed_text or (
+                "I uploaded an image but it could not be read right now. "
+                "Please ask me to describe my situation in words instead."
+            )
+        elif typed_text:
+            combined_message = f"{typed_text}\n\n[Image the user shared shows]: {vision_text}"
+        else:
+            combined_message = f"I've shared an image. Here is what it shows: {vision_text}"
+
+        result = await process_chat_message(
+            message=combined_message,
+            language=language,
+            history=history_list,
+            district=district,
+            state_name=state_name,
+        )
+        result.image_analysis = vision_text
+        return result
+
+    except Exception:
+        print(f"[ERROR][image] {traceback.format_exc()}")
+        return ChatResponse(
+            answer=(
+                "I'm sorry, I couldn't process that image. Please try again, "
+                "or type your question instead. For immediate help, call 181 "
+                "(Women's Helpline)."
+            ),
             detected_lang="en",
             language_name="English"
         )
