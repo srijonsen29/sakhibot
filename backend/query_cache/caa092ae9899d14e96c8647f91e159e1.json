@@ -1,8 +1,8 @@
 {
-  "timestamp": 1780210434.0817826,
+  "timestamp": 1783281803.9211013,
   "query": "I need information about domestic violence",
   "data": {
-    "answer": "Domestic violence is defined as any act, omission, or commission or conduct of the respondent that harms or injures or endangers the health, safety, life, limb, or well-being, whether mental or physical, of the aggrieved person. This can include physical, emotional, or financial abuse. (Section 3 of the Protection of Women from Domestic Violence Act, 2005)\n\nYou have the right to live in a shared household, which includes a household owned or tenanted by either you or the respondent, or both jointly or singly. (Section 2(t) of the Protection of Women from Domestic Violence Act, 2005)\n\nIf you are experiencing domestic violence, you can report it to the concerned Protection Officer, who will inform you of your rights and provide you with assistance.\n\nPractical next step: Reach out to a local women's helpline or a Protection Officer in your area to report the domestic violence and seek help.",
+    "answer": "Domestic violence is defined as any act, omission, or commission or conduct of the respondent that harms or injures or endangers the health, safety, life, limb, or well-being, whether mental or physical, of the aggrieved person. This includes acts that harm or injure or endanger the health, safety, life, limb, or well-being of the aggrieved person, or prohibit or restrict continued access to resources or facilities that the aggrieved person is entitled to use or enjoy by virtue of the domestic relationship.\n\nAccording to Section 3 of the Protection of Women from Domestic Violence Act, 2005, domestic violence includes:\n\n- Harming or injuring or endangering the health, safety, life, limb, or well-being, whether mental or physical, of the aggrieved person.\n- Prohibiting or restricting continued access to resources or facilities that the aggrieved person is entitled to use or enjoy by virtue of the domestic relationship.\n\nIf you or someone you know is a victim of domestic violence, please seek help immediately.\n\n**Practical next step:** Contact the local police or a Protection Officer and report the incident. They will guide you through the process and provide necessary support.",
     "sources": [
       {
         "source": "Domestic Violence Act 2005",
@@ -38,6 +38,8 @@
       "the aggrieved person has an interest or is entitled to use by virtue of the domestic relationship or which may be reasonably required by the aggrieved person or her children or her stridhan or any other property jointly or separately held by the aggrieved person; and (c) prohibition or restriction to continued access to resources or facilities which the aggrieved person is entitled to use or enjoy by virtue of the domestic relationship including access to the shared household. Explanation II.—For the purpose of determining whether any act, omission, commission or conduct of the respondent constitutes “domestic violence” under this section, the overall facts and circumstances of the case shall be taken into consideration. CHAPTER III POWERS AND DUTIES OF PROTECTION OFFICERS, SERVICE PROVIDERS, ETC. 4. Information to Protection Officer and exclusion of liability of informant.—(1) Any person who has reason to believe that an act of domestic violence has"
     ],
     "confidence": "high",
+    "quality_checked": true,
+    "quality_score": 100,
     "query": "I need information about domestic violence"
   }
 }

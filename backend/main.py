@@ -3,6 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 import traceback
+import sys
+
+# Force stdout/stderr to use UTF-8 encoding on Windows to prevent UnicodeEncodeError in print statements
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 from auth import router as auth_router
 from database import Base, engine
@@ -129,7 +136,7 @@ async def chat(req: ChatRequest):
 
         # ── step 3: translate input to English ───────────────────────────────
         english_message = translate_to_english(message, detected_lang)
-        print(f"[TRANSLATE IN]  {detected_lang}→en: {english_message[:60]}...")
+        print(f"[TRANSLATE IN]  {detected_lang}->en: {english_message[:60]}...")
 
         # also translate history user messages for context
         translated_history = []
@@ -161,7 +168,7 @@ async def chat(req: ChatRequest):
         answer_translated = translate_from_english(
             result["answer"], detected_lang
         )
-        print(f"[TRANSLATE OUT] en→{detected_lang}: {answer_translated[:60]}...")
+        print(f"[TRANSLATE OUT] en->{detected_lang}: {answer_translated[:60]}...")
 
         # translate next_question if asking user something
         next_q = result.get("next_question", "")

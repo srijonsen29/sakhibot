@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer
 from core.config import CHROMA_PATH, EMBED_MODEL, TOP_K
 from core.cache import get as cache_get, set as cache_set
 from core.groq_client import chat as groq_chat
-
+from quality_gates import run_legal_accuracy_gate
 # ── initialise clients ───────────────────────────────────────────────────────
 print("Initialising Legal Retriever...")
 _embed_model = SentenceTransformer(EMBED_MODEL)
@@ -119,7 +119,7 @@ def retrieve(query: str) -> dict:
 
 
 
-def generate_answer(query: str, chunks: list) -> str:
+def generate_answer(query: str, chunks: list, unsupported_claims: list[str] | None = None) -> str:
     if not chunks:
         return (
             "I could not find relevant information in my knowledge base. "
@@ -131,12 +131,21 @@ def generate_answer(query: str, chunks: list) -> str:
         for i, chunk in enumerate(chunks)
     ])
 
+    retry_instruction = ""
+    if unsupported_claims:
+        retry_instruction = (
+            "\n\nThe previous draft included these unsupported claims. "
+            "Exclude them unless they are directly proven by the context:\n"
+            + "\n".join(f"- {claim}" for claim in unsupported_claims)
+        )
+
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user",   "content": (
             f"Context documents:\n{context}\n\n"
             f"Question: {query}\n\n"
             f"Answer based only on the context above."
+            f"{retry_instruction}"
         )}
     ]
 
@@ -203,19 +212,25 @@ def run(query: str) -> dict:
                 "sources":    data["sources"],
                 "chunks":     [],
                 "confidence": "high",
+                "quality_checked": True,
+                "quality_score": 100,
                 "query":      query
             }
 
     # check cache
     cached = cache_get(query)
-    if cached:
+    if cached and cached.get("quality_checked"):
         return cached
 
     # normal pipeline
     retrieval  = retrieve(query)
     chunks     = retrieval["chunks"]
     sources    = retrieval["sources"]
-    answer     = generate_answer(query, chunks)
+    answer, quality_verdict = run_legal_accuracy_gate(
+        question=query,
+        chunks=chunks,
+        generate=lambda unsupported: generate_answer(query, chunks, unsupported)
+    )
     confidence = score_confidence(answer, chunks)
 
     result = {
@@ -223,6 +238,8 @@ def run(query: str) -> dict:
         "sources":    sources,
         "chunks":     chunks,
         "confidence": confidence,
+        "quality_checked": True,
+        "quality_score": quality_verdict.get("score", 0),
         "query":      query
     }
 
