@@ -185,7 +185,7 @@ def safety_node(state: SakhiBotState) -> SakhiBotState:
             }
         }
 
-    result = safety_run(state["message"], state.get("history", []))
+    result = safety_run(state["message"], state.get("history", []), state.get("legal_sources", []))
     return {**state, "safety_result": result}
 
 

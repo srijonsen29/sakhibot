@@ -8,6 +8,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from groq import Groq
 from core.config import GROQ_API_KEY, LLM_MODEL
+from quality_gates import critique_doc_output
 
 _groq_client = Groq(api_key=GROQ_API_KEY)
 
@@ -108,7 +109,7 @@ def collect_details_prompt(document_type: str, history: list) -> str:
 
 
 # ── field extractor ─────────────────────────────────────────────────────────
-def extract_collected_fields(history: list) -> dict:
+def extract_collected_fields(history: list, excluded_fields: list[str] | None = None) -> dict:
     if not history:
         return {}
     history_text = "\n".join([
@@ -116,6 +117,16 @@ def extract_collected_fields(history: list) -> dict:
         for msg in history
         if isinstance(msg, dict) and "role" in msg and "content" in msg
     ])
+    
+    retry_instruction = ""
+    if excluded_fields:
+        retry_instruction = (
+            "\n\nCRITICAL: The previous extraction included values for the following fields that were "
+            "deemed untraceable or not present in the conversation text. Do NOT extract values for these fields "
+            "unless they are clearly and explicitly stated in the conversation history:\n"
+            + "\n".join(f"- {f}" for f in excluded_fields)
+        )
+
     extraction_prompt = f"""Extract the following information from this conversation if mentioned.
 Return ONLY a valid JSON object with the field names as keys.
 If a field is not mentioned, do not include it.
@@ -129,6 +140,7 @@ department, state, district
 
 Conversation:
 {history_text}
+{retry_instruction}
 
 Return only JSON, nothing else."""
     try:
@@ -320,44 +332,128 @@ def run(query: str, history: list = []) -> dict:
             "message": f"To prepare your {doc_type.replace('_', ' ')}, I need a few details.\n\n{next_question}"
         }
 
-    # all details collected — generate document
-    fields = extract_collected_fields(history)
+    # all details collected — run generate & critique loop with retries
+    max_attempts = 3
+    excluded_fields = []
+    last_fields = {}
+    last_result = {}
 
-    # add defaults for missing optional fields
-    defaults = {
-        "state": "India",
-        "district": fields.get("court_district", "Your District"),
-        "accused_address": "As known to complainant",
-        "accused_department": "As applicable",
+    for attempt in range(1, max_attempts + 1):
+        fields = extract_collected_fields(history, excluded_fields)
+        last_fields = fields
+
+        # add defaults for missing optional fields
+        defaults = {
+            "state": "India",
+            "district": fields.get("court_district", "Your District"),
+            "accused_address": "As known to complainant",
+            "accused_department": "As applicable",
+        }
+        for k, v in defaults.items():
+            if k not in fields:
+                fields[k] = v
+
+        try:
+            pdf_bytes = docx_to_pdf_bytes(doc_type, fields)
+            filename = f"sakhibot_{doc_type}_{fields.get('complainant_name', 'draft').replace(' ', '_')}.pdf"
+
+            last_result = {
+                "needs_document": True,
+                "document_type": doc_type,
+                "next_question": "",
+                "document_ready": True,
+                "document_bytes": pdf_bytes,
+                "filename": filename,
+                "fields": last_fields,  # pass to critique_doc_output
+                "message": (
+                    f"Your {doc_type.replace('_', ' ')} is ready to download. "
+                    f"Please review it carefully and take it to the relevant authority. "
+                    f"Remember: Section 154 of CrPC requires police to register your FIR."
+                )
+            }
+        except Exception as e:
+            last_result = {
+                "needs_document": True,
+                "document_type": doc_type,
+                "next_question": "",
+                "document_ready": False,
+                "document_bytes": None,
+                "filename": "",
+                "fields": last_fields,
+                "message": f"There was an error generating your document: {str(e)}. Please try again."
+            }
+
+        # Run critique
+        verdict = critique_doc_output(last_result, history)
+        if verdict.get("passed"):
+            # clean up internal key before returning
+            last_result.pop("fields", None)
+            return last_result
+
+        # Update excluded fields based on untraceable ones
+        untraceable = verdict.get("untraceable_fields", [])
+        for f in untraceable:
+            if f not in excluded_fields:
+                excluded_fields.append(f)
+
+    # FALLBACK: If the final attempt fails, blank out the untraceable fields,
+    # set document_ready = False, and return next_question asking the user directly
+    for f in excluded_fields:
+        if f in last_fields:
+            last_fields.pop(f)
+            
+    # Find which required field was blanked out (or is missing) to ask the user
+    required = {
+        "fir": [
+            "complainant_name", "complainant_address", "complainant_phone",
+            "accused_name", "incident_date", "incident_place",
+            "incident_nature", "police_station",
+        ],
+        "dv_complaint": [
+            "complainant_name", "complainant_address", "complainant_phone",
+            "complainant_age", "accused_name", "accused_address",
+            "relationship", "incident_date", "incident_nature", "court_district",
+        ],
+        "posh_complaint": [
+            "complainant_name", "designation", "department", "complainant_phone",
+            "accused_name", "accused_designation", "organization_name",
+            "incident_date", "incident_place", "incident_nature",
+        ],
+    }.get(doc_type, [])
+    
+    fallback_field = "complainant_name"
+    for r_field in required:
+        if r_field not in last_fields:
+            fallback_field = r_field
+            break
+            
+    questions_map = {
+        "complainant_name":     "What is your full name?",
+        "complainant_address":  "What is your current address?",
+        "complainant_phone":    "What is your phone number?",
+        "complainant_age":      "What is your age?",
+        "accused_name":         "What is the full name of the person you are complaining against?",
+        "accused_address":      "What is the address of the accused person?",
+        "accused_designation":  "What is the designation/job title of the accused?",
+        "relationship":         "What is your relationship to the accused? (e.g. husband, in-law, colleague)",
+        "incident_date":        "On what date did the incident occur? (e.g. 24 May 2026)",
+        "incident_place":       "Where did the incident take place?",
+        "incident_nature":      "Please briefly describe what happened. What did the accused do?",
+        "police_station":       "Which police station is nearest to your location?",
+        "court_district":       "Which district are you in? (for the court application)",
+        "organization_name":    "What is the name of your organisation/company?",
+        "designation":          "What is your job designation/title?",
+        "department":           "Which department do you work in?",
     }
-    for k, v in defaults.items():
-        if k not in fields:
-            fields[k] = v
-
-    try:
-        pdf_bytes = docx_to_pdf_bytes(doc_type, fields)
-        filename = f"sakhibot_{doc_type}_{fields.get('complainant_name', 'draft').replace(' ', '_')}.pdf"
-
-        return {
-            "needs_document": True,
-            "document_type": doc_type,
-            "next_question": "",
-            "document_ready": True,
-            "document_bytes": pdf_bytes,
-            "filename": filename,
-            "message": (
-                f"Your {doc_type.replace('_', ' ')} is ready to download. "
-                f"Please review it carefully and take it to the relevant authority. "
-                f"Remember: Section 154 of CrPC requires police to register your FIR."
-            )
-        }
-    except Exception as e:
-        return {
-            "needs_document": True,
-            "document_type": doc_type,
-            "next_question": "",
-            "document_ready": False,
-            "document_bytes": None,
-            "filename": "",
-            "message": f"There was an error generating your document: {str(e)}. Please try again."
-        }
+    
+    next_question = questions_map.get(fallback_field, f"Could you please clarify your {fallback_field.replace('_', ' ')}?")
+    
+    return {
+        "needs_document": True,
+        "document_type": doc_type,
+        "next_question": next_question,
+        "document_ready": False,
+        "document_bytes": None,
+        "filename": "",
+        "message": f"To prepare your {doc_type.replace('_', ' ')}, I need to clarify: {next_question}"
+    }

@@ -1,6 +1,7 @@
 import json
 import os
 from difflib import SequenceMatcher
+from quality_gates import critique_resource_output
 
 # ── load resource database once ──────────────────────────────────────────────
 _DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "resources.json")
@@ -265,7 +266,7 @@ def run(
     resource_needed = needs_location(query)
 
     if not resource_needed and not district and not state:
-        return {
+        result = {
             "needs_location":  False,
             "location_found":  False,
             "resources":       [],
@@ -273,10 +274,12 @@ def run(
             "message":         "",
             "asking_for":      ""
         }
+        _with_quality(result, query)
+        return result
 
     # if we need resources but don't have location yet — ask for it
     if not district and not state:
-        return {
+        result = {
             "needs_location":  True,
             "location_found":  False,
             "resources":       [],
@@ -287,6 +290,8 @@ def run(
             ),
             "asking_for":      "location"
         }
+        _with_quality(result, query)
+        return result
 
     # normalise state
     state = _normalise_state(state) if state else state
@@ -308,40 +313,69 @@ def run(
 
     location_label = f"{district}, {state}".strip(", ")
 
-    if all_resources:
-        message = (
-            f"I found {len(all_resources)} resources near {location_label}. "
-            f"One Stop Centres are government-run 24x7 facilities that provide "
-            f"shelter, police help, medical aid, and legal assistance all in one place. "
-            f"They are completely free."
-        )
-    else:
-        # no exact match — return state-level or national resources
-        state_oscs = [
-            e for e in _DB["one_stop_centres"]
-            if _similarity(e.get("state", ""), state) > 0.7
-        ]
-        for r in state_oscs[:3]:
-            all_resources.append(format_resource_card(r))
-
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
         if all_resources:
             message = (
-                f"I could not find resources in {district} specifically, "
-                f"but here are the nearest resources in {state}. "
-                f"Call 181 (Women's Helpline) right now for immediate guidance."
+                f"I found {len(all_resources)} resources near {location_label}. "
+                f"One Stop Centres are government-run 24x7 facilities that provide "
+                f"shelter, police help, medical aid, and legal assistance all in one place. "
+                f"They are completely free."
             )
         else:
-            message = (
-                f"I could not find specific resources in your area. "
-                f"Please call 181 (Women's Helpline) immediately — "
-                f"they will guide you to the nearest One Stop Centre."
-            )
+            # no exact match — return state-level or national resources
+            state_oscs = [
+                e for e in _DB["one_stop_centres"]
+                if _similarity(e.get("state", ""), state) > 0.7
+            ]
+            for r in state_oscs[:3]:
+                all_resources.append(format_resource_card(r))
 
+            if all_resources:
+                message = (
+                    f"I could not find resources in {district} specifically, "
+                    f"but here are the nearest resources in {state}. "
+                    f"Call 181 (Women's Helpline) right now for immediate guidance."
+                )
+            else:
+                message = (
+                    f"I could not find specific resources in your area. "
+                    f"Please call 181 (Women's Helpline) immediately — "
+                    f"they will guide you to the nearest One Stop Centre."
+                )
+
+        result = {
+            "needs_location":  True,
+            "location_found":  True,
+            "resources":       all_resources,
+            "helplines":       helplines[:4],   # top 4 helplines
+            "message":         message,
+            "asking_for":      ""
+        }
+
+        # Run critique (which is local lookup checking against DB records)
+        verdict = critique_resource_output(result, query, _DB)
+        if verdict.get("passed"):
+            return result
+
+        # Filter out hallucinated resources (names not in DB)
+        known_names = set()
+        for group in ("one_stop_centres", "shelter_homes", "legal_aid_offices"):
+            for entry in _DB.get(group, []):
+                known_names.add(entry.get("name", ""))
+                
+        all_resources = [r for r in all_resources if r.get("name") in known_names]
+
+    # FALLBACK if empty or failed after all retries:
     return {
         "needs_location":  True,
         "location_found":  True,
-        "resources":       all_resources,
-        "helplines":       helplines[:4],   # top 4 helplines
-        "message":         message,
+        "resources":       [],
+        "helplines":       helplines[:4],
+        "message":         (
+            "I could not find specific resources in your area. "
+            "Please call 181 (Women's Helpline) immediately — "
+            "they will guide you to the nearest One Stop Centre."
+        ),
         "asking_for":      ""
     }

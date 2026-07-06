@@ -1,8 +1,8 @@
 {
-  "timestamp": 1780210438.2306938,
+  "timestamp": 1783281861.3477578,
   "query": "Where is my nearest shelter?",
   "data": {
-    "answer": "According to Context 3, the duties of shelter homes include providing shelter to an aggrieved person if she requests it. The person in charge of the shelter home shall provide shelter to the aggrieved person in the shelter home.\n\nTo find your nearest shelter, you can:\n\n**Practical Next Step:** Contact the local police station or the nearest Magistrate's office and ask for the list of shelter homes in your area. They can provide you with the information and direct you to the nearest shelter.",
+    "answer": "I could not verify this answer strongly enough against my legal knowledge base. Please consult a qualified lawyer or call 181 (Women's Helpline) for immediate guidance.",
     "sources": [
       {
         "source": "Domestic Violence Act 2005",
@@ -38,6 +38,8 @@
       "person so desires and forward a copy thereof to the Magistrate and the Protection Officer having jurisdiction in the area where the domestic violence took place; (b) get the aggrieved person medically examined and forward a copy of the medical repot to the Protection Officer and the police station within the local limits of which the domestic violence took place; (c) ensure that the aggrieved person is provided shelter in a shelter home, if she so requires and forward a report of the lodging of the aggrieved person in the shelter home to the police station within the local limits of which the domestic violence took place. (3) No suit, prosecution or other legal proceeding shall lie against any service provider or any member of the service provider who is, or who is deemed to be, acting or purporting to act under this Act, for anything which is in good"
     ],
     "confidence": "high",
+    "quality_checked": true,
+    "quality_score": 0,
     "query": "Where is my nearest shelter?"
   }
 }

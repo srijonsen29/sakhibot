@@ -1,5 +1,5 @@
 from core.groq_client import chat as groq_chat
-
+from quality_gates import critique_safety_output
 # ── situational questions ─────────────────────────────────────────────────────
 SITUATION_QUESTIONS = [
     {
@@ -177,13 +177,14 @@ def get_next_question(history: list) -> str:
 
     return ""   # all questions answered
 
-def run(query: str, history: list = []) -> dict:
+def run(query: str, history: list = [], retrieved_sources: list[dict] | None = None) -> dict:
     """
     Full Agent 4 pipeline.
 
     Input:
-        query:   current user message
-        history: full conversation history
+        query:             current user message
+        history:           full conversation history
+        retrieved_sources: list of retrieved sources in this session (optional)
 
     Output: {
         plan_steps:      list[str],
@@ -198,35 +199,60 @@ def run(query: str, history: list = []) -> dict:
     next_question = get_next_question(history)
     is_urgent     = situation.get("immediate_safety") == "danger"
 
-    # if urgent — generate plan immediately without asking all questions
     if is_urgent or not next_question:
         situation_summary = build_situation_summary(situation)
-
         prompt = SAFETY_PROMPT.format(situation=situation_summary)
-        messages = [{"role": "user", "content": prompt}]
+        steps = []
+        verdict = {"passed": False}
 
-        raw_plan = groq_chat(messages, temperature=0.2, max_tokens=512)
-        steps    = parse_plan_steps(raw_plan)
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            retry_note = ""
+            if attempt > 0:
+                retry_note = (
+                    "\n\nVerifier retry: Do not cite section numbers, article "
+                    "numbers, or statute names unless they were provided as "
+                    "retrieved legal sources in this session."
+                )
+            messages = [{"role": "user", "content": prompt + retry_note}]
+            raw_plan = groq_chat(messages, temperature=0.2, max_tokens=512)
+            steps = parse_plan_steps(raw_plan)
 
-        # ensure step 1 is always call 181 if urgent
-        if is_urgent and steps:
-            if "181" not in steps[0]:
-                steps.insert(0, "Call 181 (Women's Helpline) RIGHT NOW — "
+            if is_urgent and steps and "181" not in steps[0]:
+                steps.insert(0, "Call 181 (Women's Helpline) RIGHT NOW - "
                                "tell them you are in danger and need help immediately.")
 
-        plan_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
+            result = {
+                "plan_steps":    steps,
+                "plan_text":     "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps)),
+                "is_urgent":     is_urgent,
+                "situation":     situation,
+                "next_question": "",
+                "ready":         True
+            }
+            verdict = critique_safety_output(result, retrieved_sources)
+            if verdict.get("passed"):
+                return result
 
-        return {
+        if not verdict.get("passed"):
+            import re
+            steps = [
+                re.sub(r"\b(?:Section|Article)\s+\d+[a-zA-Z]?\b", "the relevant law", step, flags=re.IGNORECASE)
+                for step in steps
+            ]
+
+        result = {
             "plan_steps":    steps,
-            "plan_text":     plan_text,
+            "plan_text":     "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps)),
             "is_urgent":     is_urgent,
             "situation":     situation,
             "next_question": "",
             "ready":         True
         }
+        critique_safety_output(result, retrieved_sources)
+        return result
 
-    # not urgent — still collecting info
-    return {
+    result = {
         "plan_steps":    [],
         "plan_text":     "",
         "is_urgent":     False,
@@ -234,3 +260,5 @@ def run(query: str, history: list = []) -> dict:
         "next_question": next_question,
         "ready":         False
     }
+critique_safety_output(result, retrieved_sources)
+    return result
