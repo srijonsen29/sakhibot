@@ -31,7 +31,7 @@ function getErrorMessage(err, fallback) {
 }
 
 export default function App() {
-  const [screen,   setScreen]   = useState('landing') // 'landing' | 'chat'
+  const [screen, setScreen] = useState('landing') // 'landing' | 'chat'
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [authChecking, setAuthChecking] = useState(() =>
@@ -44,12 +44,12 @@ export default function App() {
   const [isLogin, setIsLogin] = useState(true)
   const [lang, setLang] = useState('en')
   const [permissionGranted, setPermissionGranted] = useState(false)
-  const [district,   setDistrict]   = useState('')   // eslint-disable-line
-  const [stateName,  setStateName]  = useState('')   // eslint-disable-line
+  const [district, setDistrict] = useState('')   // eslint-disable-line
+  const [stateName, setStateName] = useState('')   // eslint-disable-line
 
   // history for the API — role + content only
   const apiHistory = messages.map(m => ({
-    role:    m.role,
+    role: m.role,
     content: m.content,
   }))
 
@@ -145,9 +145,9 @@ export default function App() {
 
     try {
       const data = await sendMessage({
-        message:   text,
-        language:  lang,
-        history:   apiHistory,
+        message: text,
+        language: lang,
+        history: apiHistory,
         district,
         stateName,
       })
@@ -159,19 +159,19 @@ export default function App() {
       setMessages(prev => [
         ...prev,
         {
-          role:            'assistant',
-          content:         data.answer,
-          sources:         data.sources         || [],
-          resources:       data.resources       || [],
-          helplines:       data.helplines       || [],
-          safetyPlan:      data.safety_plan     || [],
-          documentReady:   data.document_ready  || false,
-          documentType:    data.document_type   || '',
-          nextQuestion:    data.next_question   || '',
-          isEmergency:     data.is_emergency    || false,
-          severity:        data.severity        || 'none',
-          activatedAgents: data.activated_agents|| [],
-          detectedLang:    data.detected_lang   || 'en',
+          role: 'assistant',
+          content: data.answer,
+          sources: data.sources || [],
+          resources: data.resources || [],
+          helplines: data.helplines || [],
+          safetyPlan: data.safety_plan || [],
+          documentReady: data.document_ready || false,
+          documentType: data.document_type || '',
+          nextQuestion: data.next_question || '',
+          isEmergency: data.is_emergency || false,
+          severity: data.severity || 'none',
+          activatedAgents: data.activated_agents || [],
+          detectedLang: data.detected_lang || 'en',
         }
       ])
     } catch (err) {
@@ -179,11 +179,11 @@ export default function App() {
       setMessages(prev => [
         ...prev,
         {
-          role:    'assistant',
+          role: 'assistant',
           content: 'Sorry, I could not connect to the server. '
-                 + 'Please check your connection and try again. '
-                 + 'For immediate help, call 181.',
-          sources:     [],
+            + 'Please check your connection and try again. '
+            + 'For immediate help, call 181.',
+          sources: [],
           isEmergency: false,
         }
       ])
@@ -233,20 +233,13 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-white lg:bg-emerald-50/40">
       {/* header */}
-      <header
-        className="border-b border-emerald-100/80 bg-white/95 sticky top-0 z-10
-                   backdrop-blur"
-      >
-        <div
-          className="mx-auto flex w-full max-w-7xl items-center justify-between
-                     gap-3 px-4 py-3 sm:px-6 lg:px-8"
-        >
+      <header className="border-b border-emerald-100/80 bg-white/95 sticky top-0 z-10 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2.5">
             <button
               onClick={() => setScreen('landing')}
-              className="w-9 h-9 bg-emerald-600 rounded-full flex items-center
-                         justify-center text-white text-sm font-bold shadow-sm
-                         shrink-0"
+              className="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0"
+              title="SakhiBot home"
             >
               S
             </button>
@@ -268,8 +261,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-xl border border-gray-200 px-3 py-2 text-xs
-                         font-semibold text-gray-600 hover:bg-gray-50"
+              className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
             >
               Logout
             </button>
@@ -278,6 +270,7 @@ export default function App() {
               <button
                 onClick={() => setScreen('landing')}
                 className="text-gray-400 hover:text-gray-600 p-1"
+                title="Home"
               >
                 <svg
                   className="w-5 h-5"
@@ -290,8 +283,8 @@ export default function App() {
                     strokeLinejoin="round"
                     strokeWidth={2}
                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2
-                       2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0
-                       011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+         2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0
+         011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                   />
                 </svg>
               </button>
@@ -312,8 +305,8 @@ export default function App() {
       ) : (
         <main
           className="mx-auto flex w-full max-w-4xl flex-1 flex-col bg-white
-                     shadow-sm lg:my-6 lg:min-h-[calc(100vh-6rem)]
-                     lg:rounded-3xl lg:border lg:border-emerald-100"
+             shadow-sm lg:my-6 lg:min-h-[calc(100vh-6rem)]
+             lg:rounded-3xl lg:border lg:border-emerald-100"
         >
           <ChatWindow
             messages={messages}
@@ -333,4 +326,4 @@ export default function App() {
     </div>
   )
 }
- 
+

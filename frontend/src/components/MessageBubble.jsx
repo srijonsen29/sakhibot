@@ -1,8 +1,9 @@
+
 import { useState } from 'react'
-import SourceCard     from './SourceCard'
-import ResourceCard   from './ResourceCard'
+import SourceCard from './SourceCard'
+import ResourceCard from './ResourceCard'
 import SafetyPlanCard from './SafetyPlanCard'
-import DocumentCard   from './DocumentCard'
+import DocumentCard from './DocumentCard'
 
 export default function MessageBubble({ msg, history }) {
   const isUser = msg.role === 'user'
@@ -34,9 +35,9 @@ export default function MessageBubble({ msg, history }) {
         <div className={`rounded-2xl rounded-tl-sm px-4 py-3 text-sm
                         leading-relaxed shadow-sm
                         ${msg.isEmergency
-                          ? 'bg-red-50 border border-red-200 text-red-900'
-                          : 'bg-gray-100 text-gray-800'
-                        }`}>
+            ? 'bg-red-50 border border-red-200 text-red-900'
+            : 'bg-gray-100 text-gray-800'
+          }`}>
           <MessageText text={msg.content} />
         </div>
 
@@ -134,11 +135,11 @@ function TTSButton({ text, lang }) {
     }
 
     const utter = new SpeechSynthesisUtterance(text)
-    utter.lang  = LANG_BCP47[lang] || 'en-IN'
-    utter.rate  = 0.9
+    utter.lang = LANG_BCP47[lang] || 'en-IN'
+    utter.rate = 0.9
 
     utter.onstart = () => setSpeaking(true)
-    utter.onend   = () => setSpeaking(false)
+    utter.onend = () => setSpeaking(false)
     utter.onerror = () => setSpeaking(false)
 
     window.speechSynthesis.speak(utter)
@@ -153,16 +154,16 @@ function TTSButton({ text, lang }) {
     >
       {speaking
         ? <svg className="w-3.5 h-3.5" fill="currentColor"
-            viewBox="0 0 24 24">
-            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-          </svg>
+          viewBox="0 0 24 24">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+        </svg>
         : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15.536 8.464a5 5 0 010 7.072M12 6a7 7 0 010 12M8.464
+          stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15.536 8.464a5 5 0 010 7.072M12 6a7 7 0 010 12M8.464
                  8.464a5 5 0 000 7.072M6 12H4" />
-          </svg>
+        </svg>
       }
       Listen
     </button>
@@ -174,7 +175,7 @@ function WhatsAppShare({ text, sources }) {
     const sourceList = sources?.length
       ? '\n\nSource: ' + sources.map(s => s.source).join(', ')
       : ''
-    const msg     = encodeURIComponent(
+    const msg = encodeURIComponent(
       `SakhiBot says:\n\n${text}${sourceList}\n\nGet help: 181 (Women's Helpline)`
     )
     window.open(`https://wa.me/?text=${msg}`, '_blank')
@@ -222,3 +223,4 @@ const LANG_BCP47 = {
   kn: 'kn-IN',
   ml: 'ml-IN',
 }
+
