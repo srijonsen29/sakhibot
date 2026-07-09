@@ -21,13 +21,15 @@ export default function InputBar({ onSend, loading, lang = 'en' }) {
   }
 
   return (
-    <div className="border-t border-gray-100 bg-white px-4 py-3 sm:px-6">
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
+    <div className="bg-white border-t border-gray-100 px-4 py-3
+                    lg:px-6 lg:py-4 shrink-0">
+      {/* centered container on desktop */}
+      <div className="max-w-3xl mx-auto flex items-end gap-2">
         <VoiceButton
           lang={lang}
           onResult={t => setText(t)}
           disabled={loading}
-        />
+    />
 
         <div className="flex-1 relative">
           <textarea

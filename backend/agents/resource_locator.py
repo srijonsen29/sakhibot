@@ -235,6 +235,18 @@ def extract_location_from_query(query: str) -> tuple[str, str]:
 
     return found_district, found_state
 
+def _with_quality(result: dict, query: str) -> dict:
+    """
+    Logs a quality verdict for early-return paths in run() (e.g. when we're
+    still asking the user for their location, or no resources were needed
+    at all) where there's no resource list yet to retry against.
+    """
+    try:
+        critique_resource_output(result, query, _DB)
+    except Exception as exc:
+        print(f"[QUALITY] resource critique failed: {exc}")
+    return result
+
 # ── main agent run function ───────────────────────────────────────────────────
 def run(
     query: str,

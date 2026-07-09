@@ -252,6 +252,7 @@ def run(query: str, history: list = [], retrieved_sources: list[dict] | None = N
         critique_safety_output(result, retrieved_sources)
         return result
 
+    # If not urgent and still missing info, return with next question
     result = {
         "plan_steps":    [],
         "plan_text":     "",
@@ -260,5 +261,4 @@ def run(query: str, history: list = [], retrieved_sources: list[dict] | None = N
         "next_question": next_question,
         "ready":         False
     }
-critique_safety_output(result, retrieved_sources)
     return result

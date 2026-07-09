@@ -5,33 +5,42 @@ from pydantic import BaseModel
 import traceback
 import sys
 
-# Force stdout/stderr to use UTF-8 encoding on Windows to prevent UnicodeEncodeError in print statements
+# Force stdout/stderr to use UTF-8 encoding on Windows
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
+# Internal imports
 from auth import router as auth_router
 from database import Base, engine
 import models
-from core.translate  import detect_language, translate_to_english, translate_from_english, get_language_name
-from core.emergency  import detect_emergency, build_emergency_response
+from core.translate import (
+    detect_language, translate_to_english,
+    translate_from_english, get_language_name
+)
+from core.emergency import detect_emergency, build_emergency_response
 from orchestrator import run as orchestrate
 from routes.emergency import router as emergency_router
 from routes.consent import router as consent_router
+from whatsapp import router as whatsapp_router   # keep WhatsApp router
 
+# FastAPI app
 app = FastAPI(
     title="SakhiBot API",
     description="AI-powered women's legal rights assistant for India",
     version="2.0.0"
 )
-Base.metadata.create_all(bind=engine)
 
-# Include routers
+# Routers
 app.include_router(auth_router)
 app.include_router(emergency_router)
 app.include_router(consent_router)
+app.include_router(whatsapp_router)
 
+Base.metadata.create_all(bind=engine)
+
+# Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -46,8 +55,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ── request / response models ─────────────────────────────────────────────────
+# ── request / response models ────────────────────────────────────────────────
 class ChatRequest(BaseModel):
     message:    str
     language:   str  = ""     # optional — auto-detected if empty
@@ -74,15 +82,15 @@ class ChatResponse(BaseModel):
 class DocumentRequest(BaseModel):
     document_type: str
     history:       list = []
+    language:      str  = "en"
 
-
-# ── health check ──────────────────────────────────────────────────────────────
+# ── health check ─────────────────────────────────────────────────────────────
 @app.get("/api/health")
 def health():
     return {
         "status":  "ok",
         "project": "SakhiBot",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "backend": "complete",
         "agents":  [
             "legal_retriever",
@@ -98,6 +106,9 @@ def health():
         ]
     }
 
+@app.get("/")
+def root():
+    return {"message": "Welcome to SakhiBot API"}
 
 # ── main chat endpoint ────────────────────────────────────────────────────────
 @app.post("/api/chat", response_model=ChatResponse)
@@ -111,14 +122,14 @@ async def chat(req: ChatRequest):
                 language_name="English"
             )
 
-        # ── step 1: detect language ───────────────────────────────────────────
+        # Step 1: detect language
         detected_lang = req.language if req.language else detect_language(message)
         language_name = get_language_name(detected_lang)
 
         print(f"\n{'='*50}")
         print(f"[REQUEST] lang={detected_lang} | msg={message[:60]}...")
 
-        # ── step 2: emergency check ───────────────────────────────────────────
+        # Step 2: emergency check
         em = detect_emergency(message, detected_lang)
 
         if em.is_emergency and em.severity in ["critical", "high"]:
@@ -134,11 +145,11 @@ async def chat(req: ChatRequest):
                 language_name=language_name
             )
 
-        # ── step 3: translate input to English ───────────────────────────────
+        # Step 3: translate input to English
         english_message = translate_to_english(message, detected_lang)
         print(f"[TRANSLATE IN]  {detected_lang}->en: {english_message[:60]}...")
 
-        # also translate history user messages for context
+        # Translate history
         translated_history = []
         for msg in req.history:
             if isinstance(msg, dict):
@@ -147,13 +158,13 @@ async def chat(req: ChatRequest):
                         msg.get("content", ""), detected_lang
                     )
                     translated_history.append({
-                        "role":    "user",
+                        "role": "user",
                         "content": translated_content
                     })
                 else:
                     translated_history.append(msg)
 
-        # ── step 4: run LangGraph orchestrator ───────────────────────────────
+        # Step 4: run orchestrator
         result = orchestrate(
             message=english_message,
             language=detected_lang,
@@ -164,24 +175,22 @@ async def chat(req: ChatRequest):
 
         print(f"[ORCHESTRATOR] agents={result['activated_agents']}")
 
-        # ── step 5: translate answer back to user language ───────────────────
-        answer_translated = translate_from_english(
-            result["answer"], detected_lang
-        )
+        # Step 5: translate answer back
+        answer_translated = translate_from_english(result["answer"], detected_lang)
         print(f"[TRANSLATE OUT] en->{detected_lang}: {answer_translated[:60]}...")
 
-        # translate next_question if asking user something
+        # Translate next_question
         next_q = result.get("next_question", "")
         if next_q and detected_lang != "en":
             next_q = translate_from_english(next_q, detected_lang)
 
-        # ── step 6: medium emergency — add helpline note ──────────────────────
+        # Step 6: medium emergency helplines
         helplines = result.get("helplines", [])
         if em.is_emergency and em.severity == "medium":
             if not helplines:
                 helplines = [
                     {"name": "Women's Helpline", "phone": "181", "type": "helpline"},
-                    {"name": "Police",           "phone": "100", "type": "helpline"},
+                    {"name": "Police", "phone": "100", "type": "helpline"},
                 ]
 
         return ChatResponse(
@@ -201,7 +210,7 @@ async def chat(req: ChatRequest):
             language_name=language_name
         )
 
-    except Exception as e:
+    except Exception:
         print(f"[ERROR] {traceback.format_exc()}")
         return ChatResponse(
             answer=(
@@ -213,19 +222,15 @@ async def chat(req: ChatRequest):
             language_name="English"
         )
 
-
 # ── document download endpoint ────────────────────────────────────────────────
 @app.post("/api/document")
-async def generate_document(req: DocumentRequest):
+async def generate_document_endpoint(req: DocumentRequest):
     try:
-        from agents.doc_drafter import (
-            docx_to_pdf_bytes,
-            extract_collected_fields
-        )
+        from agents.doc_drafter import docx_to_pdf_bytes, extract_collected_fields
         fields    = extract_collected_fields(req.history)
-        pdf_bytes = docx_to_pdf_bytes(req.document_type, fields)
-        filename  = f"sakhibot_{req.document_type}.pdf"
-
+        lang      = req.language if req.language else "en"
+        pdf_bytes = docx_to_pdf_bytes(req.document_type, fields, lang)
+        filename  = f"sakhibot_{req.document_type}_{lang}.pdf"
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
@@ -235,11 +240,7 @@ async def generate_document(req: DocumentRequest):
             }
         )
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e), "message": "Document generation failed"}
-        )
-
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # ── languages list endpoint ───────────────────────────────────────────────────
 @app.get("/api/languages")

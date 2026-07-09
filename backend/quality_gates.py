@@ -4,7 +4,7 @@ import re
 import time
 from typing import Callable
 
-from groq_client import chat as groq_chat
+from core.groq_client import chat as groq_chat
 
 
 LOG_DIR = "quality_logs"
