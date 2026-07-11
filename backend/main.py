@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
@@ -10,6 +10,8 @@ import models
 from translate  import detect_language, translate_to_english, translate_from_english
 from emergency  import detect_emergency, build_emergency_response
 from orchestrator import run as orchestrate
+from security import get_current_user
+
 
 app = FastAPI(
     title="SakhiBot API",
@@ -19,20 +21,17 @@ app = FastAPI(
 
 Base.metadata.create_all(bind=engine)
 app.include_router(auth_router)
+from config import ALLOWED_ORIGINS
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://sakhibot.vercel.app",   # update with your Vercel URL
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 # ── request / response models ─────────────────────────────────────────────────
@@ -66,7 +65,7 @@ class DocumentRequest(BaseModel):
 
 # ── health check ──────────────────────────────────────────────────────────────
 @app.get("/api/health")
-def health():
+def health(current_user=Depends(get_current_user)):
     return {
         "status":  "ok",
         "project": "SakhiBot",
@@ -89,7 +88,7 @@ def health():
 
 # ── main chat endpoint ────────────────────────────────────────────────────────
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, current_user=Depends(get_current_user)):
     try:
         message = req.message.strip()
         if not message:
@@ -205,7 +204,7 @@ async def chat(req: ChatRequest):
 
 # ── document download endpoint ────────────────────────────────────────────────
 @app.post("/api/document")
-async def generate_document(req: DocumentRequest):
+async def generate_document(req: DocumentRequest, current_user=Depends(get_current_user)):
     try:
         from agents.doc_drafter import (
             docx_to_pdf_bytes,
@@ -232,7 +231,7 @@ async def generate_document(req: DocumentRequest):
 
 # ── languages list endpoint ───────────────────────────────────────────────────
 @app.get("/api/languages")
-def get_languages():
+def get_languages(current_user=Depends(get_current_user)):
     return {
         "languages": [
             {"code": "en", "name": "English",    "native": "English"},
@@ -246,3 +245,4 @@ def get_languages():
             {"code": "ml", "name": "Malayalam",  "native": "മലയാളം"},
         ]
     }
+

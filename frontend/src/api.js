@@ -82,3 +82,14 @@ export async function healthCheck() {
   const res = await client.get('/api/health')
   return res.data
 }
+
+export async function setupEmergencyContacts(contacts) {
+  const res = await client.post('/api/auth/emergency-contacts', { contacts })
+  return res.data
+}
+
+export async function getEmergencyContacts() {
+  const res = await client.get('/api/auth/emergency-contacts')
+  return res.data
+}
+

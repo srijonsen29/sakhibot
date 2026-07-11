@@ -17,13 +17,36 @@ class UserOut(BaseModel):
     name: str
     email: str
     is_active: bool
+    has_emergency_contacts: bool = False
 
     class Config:
         orm_mode = True
         from_attributes = True
 
 
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class EmergencyContactOut(BaseModel):
+    id: int
+    name: str
+    phone: str
+    relationship: str
+
+    class Config:
+        from_attributes = True
+
+
+class EmergencyContactCreate(BaseModel):
+    name: str
+    phone: str
+    relationship: str
+
+
+class EmergencyContactsSetupRequest(BaseModel):
+    contacts: list[EmergencyContactCreate]
+

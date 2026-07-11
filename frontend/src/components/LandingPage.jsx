@@ -1,25 +1,30 @@
 const FEATURES = [
   {
+    key: 'answers',
     icon: 'LAW',
     title: 'Legal answers',
     desc: 'Guidance grounded in Indian laws such as the DV Act, POSH and IPC 498A.',
   },
   {
+    key: 'drafts',
     icon: 'DOC',
     title: 'FIR drafts',
     desc: 'Complaint drafts and next steps that are easier to read, edit and print.',
   },
   {
+    key: 'support',
     icon: 'HELP',
     title: 'Nearby support',
     desc: 'Find One Stop Centres, helplines, shelters and legal aid offices.',
   },
   {
+    key: 'plan',
     icon: 'PLAN',
     title: 'Safety plan',
     desc: 'Personalised steps for safer decisions in urgent or sensitive situations.',
   },
 ]
+
 
 const STEPS = [
   ['1', 'Ask in your language', 'Type or speak in Hindi, Bengali, Tamil and more.'],
@@ -48,12 +53,7 @@ export default function LandingPage({ onStart }) {
                         sm:px-6 sm:py-12 lg:grid-cols-[1.04fr_0.96fr]
                         lg:items-center lg:px-8 lg:py-16">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full
-                            border border-emerald-200 bg-emerald-50 px-3 py-1.5
-                            text-xs font-medium text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Free. No login. Always available.
-            </div>
+
 
             <h1 className="mt-5 text-3xl font-semibold leading-tight
                            text-gray-950 sm:text-4xl lg:text-5xl">
@@ -187,9 +187,19 @@ export default function LandingPage({ onStart }) {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map(feature => (
-              <div key={feature.title}
-                className="rounded-2xl border border-emerald-100 bg-white p-5
-                           shadow-sm">
+              <button
+                key={feature.title}
+                type="button"
+                onClick={() => {
+                  if (feature.key === 'support' || feature.key === 'plan') {
+                    onStart('sos')
+                  } else {
+                    onStart('chat')
+                  }
+                }}
+                className="text-left rounded-2xl border border-emerald-100 bg-white p-5
+                           shadow-sm hover:border-emerald-300 hover:shadow-md transition cursor-pointer"
+              >
                 <div className="flex h-10 w-10 items-center justify-center
                                 rounded-xl bg-emerald-100 text-[10px]
                                 font-bold text-emerald-700">
@@ -201,9 +211,10 @@ export default function LandingPage({ onStart }) {
                 <p className="mt-2 text-sm leading-6 text-gray-500">
                   {feature.desc}
                 </p>
-              </div>
+              </button>
             ))}
           </div>
+
         </div>
       </section>
 

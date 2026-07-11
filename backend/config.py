@@ -1,9 +1,15 @@
 from dotenv import load_dotenv
 import os
 
+from pathlib import Path
+
 load_dotenv()
 
+BASE_DIR = Path(__file__).resolve().parent
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'sakhibot.db'}")
+
 CHROMA_PATH = "chroma_db"
 EMBED_MODEL = "all-MiniLM-L6-v2"
 CHUNK_SIZE = 500
@@ -15,6 +21,17 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080")
 )
+BYPASS_AUTH = os.getenv("BYPASS_AUTH", "false").lower() in ("true", "1", "yes")
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,https://sakhibot.vercel.app"
+    ).split(",")
+    if origin.strip()
+]
+
+
 
 # ── model fallback chain ─────────────────────────────────────────────────────
 # if first model hits rate limit, automatically tries next one

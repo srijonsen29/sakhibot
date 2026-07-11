@@ -4,6 +4,7 @@ import ChatWindow from './components/ChatWindow'
 import InputBar from './components/InputBar'
 import Login from './components/auth/Login'
 import Signup from './components/auth/Signup'
+import EmergencySetup from './components/auth/EmergencySetup'
 import LanguageSelector from './components/LanguageSelector'
 import PermissionManager from './components/PermissionManager'
 import SOSButton from './components/SOSButton'
@@ -14,7 +15,9 @@ import {
   saveAuthToken,
   sendMessage,
   signupUser,
+  setupEmergencyContacts,
 } from './api'
+
 
 const permissionKeyFor = user => `sakhibot_permissions_${user.id}`
 
@@ -34,9 +37,8 @@ export default function App() {
   const [screen, setScreen] = useState('landing') // 'landing' | 'chat'
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
-  const [authChecking, setAuthChecking] = useState(() =>
-    Boolean(localStorage.getItem('sakhibot_token'))
-  )
+  const [authChecking, setAuthChecking] = useState(true)
+
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState('')
   const [authNotice, setAuthNotice] = useState('')
@@ -54,9 +56,6 @@ export default function App() {
   }))
 
   useEffect(() => {
-    const token = localStorage.getItem('sakhibot_token')
-    if (!token) return
-
     let ignore = false
 
     async function verifySavedToken() {
@@ -81,6 +80,27 @@ export default function App() {
       ignore = true
     }
   }, [])
+
+
+  useEffect(() => {
+    if (!user || !user.has_emergency_contacts) return
+
+    if (screen === 'chat') {
+      window.history.pushState({ screen: 'chat' }, '')
+
+      const handlePopState = (event) => {
+        // When user clicks browser back, transition state to landing page instead of escaping app
+        setScreen('landing')
+      };
+
+      window.addEventListener('popstate', handlePopState)
+      return () => {
+        window.removeEventListener('popstate', handlePopState)
+      }
+    }
+  }, [screen, user])
+
+
 
   const handleLogin = async credentials => {
     setAuthError('')
@@ -127,7 +147,9 @@ export default function App() {
     setMessages([])
     setPermissionGranted(false)
     setIsLogin(true)
+    setScreen('landing')
   }
+
 
   const handlePermissionComplete = () => {
     if (user) {
@@ -202,6 +224,13 @@ export default function App() {
     )
   }
 
+  const handleEmergencySetupComplete = async activeContacts => {
+    await setupEmergencyContacts(activeContacts)
+    // Refresh user state
+    const currentUser = await getCurrentUser()
+    setUser(currentUser)
+  }
+
   // AUTH SCREEN
   if (!user) {
     return isLogin ? (
@@ -230,6 +259,16 @@ export default function App() {
     )
   }
 
+  // EMERGENCY SETUP REDIRECT SCREEN
+  if (!user.has_emergency_contacts) {
+    return (
+      <EmergencySetup
+        onComplete={handleEmergencySetupComplete}
+      />
+    )
+  }
+
+
   return (
     <div className="min-h-screen flex flex-col bg-white lg:bg-emerald-50/40">
       {/* header */}
@@ -249,9 +288,7 @@ export default function App() {
                 SakhiBot
               </h1>
 
-              <p className="text-[10px] text-gray-400 leading-none mt-0.5">
-                Women's legal rights assistant
-              </p>
+
             </div>
           </div>
 
@@ -300,9 +337,23 @@ export default function App() {
         />
       ) : screen === 'landing' ? (
         <LandingPage
-          onStart={() => setScreen('chat')}
+          onStart={(mode) => {
+            if (mode === 'sos') {
+              setScreen('chat')
+              // Automatically open SOS button trigger by modifying storage/state if needed
+              setTimeout(() => {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                const sosButton = buttons.find(b => b.textContent.trim() === 'SOS');
+                if (sosButton) sosButton.click();
+              }, 150)
+            } else {
+              setScreen('chat')
+            }
+          }}
+
         />
       ) : (
+
         <main
           className="mx-auto flex w-full max-w-4xl flex-1 flex-col bg-white
              shadow-sm lg:my-6 lg:min-h-[calc(100vh-6rem)]

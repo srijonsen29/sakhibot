@@ -3,13 +3,12 @@ import { useMemo, useState } from 'react'
 export default function PermissionManager({ onComplete }) {
   const [permissions, setPermissions] = useState({
     location: false,
-    camera: false,
     microphone: false,
   })
   const [error, setError] = useState('')
 
   const allGranted = useMemo(
-    () => permissions.location && permissions.camera && permissions.microphone,
+    () => permissions.location && permissions.microphone,
     [permissions]
   )
 
@@ -43,7 +42,7 @@ export default function PermissionManager({ onComplete }) {
         )
         markGranted('location')
       },
-      () => setError('Location permission was denied. SOS needs location to share your position.'),
+      () => setError('Location permission was denied. SOS needs location to share your position. You can click the Allow button to try again.'),
       {
         enableHighAccuracy: true,
         timeout: 15000,
@@ -52,23 +51,13 @@ export default function PermissionManager({ onComplete }) {
     )
   }
 
-  const requestCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-      stream.getTracks().forEach(track => track.stop())
-      markGranted('camera')
-    } catch {
-      setError('Camera permission was denied.')
-    }
-  }
-
   const requestMicrophone = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach(track => track.stop())
       markGranted('microphone')
     } catch {
-      setError('Microphone permission was denied.')
+      setError('Microphone permission was denied. Please allow microphone access to enable voice input.')
     }
   }
 
@@ -84,15 +73,9 @@ export default function PermissionManager({ onComplete }) {
       action: requestLocation,
     },
     {
-      key: 'camera',
-      title: 'Camera',
-      description: 'Reserved for future SOS evidence capture.',
-      action: requestCamera,
-    },
-    {
       key: 'microphone',
       title: 'Microphone',
-      description: 'Reserved for future voice and SOS recording features.',
+      description: 'Required for future voice and SOS recording features.',
       action: requestMicrophone,
     },
   ]
@@ -175,3 +158,4 @@ export default function PermissionManager({ onComplete }) {
     </main>
   )
 }
+

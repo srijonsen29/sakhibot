@@ -1,0 +1,44 @@
+======================================================================
+         SAKHIBOT — DEVELOPMENT MODE & AUTHENTICATION BYPASS GUIDE
+======================================================================
+
+To facilitate local testing and collaborative development without requiring
+team members to sign up or input authentication credentials repeatedly, SakhiBot
+includes a built-in Authentication Bypass mechanism.
+
+----------------------------------------------------------------------
+1. HOW TO ENABLE BYPASS MODE (FOR DEVELOPERS)
+----------------------------------------------------------------------
+1. Navigate to the backend directory (`backend/`).
+2. Open the `.env` file (or create it from `.env.example`).
+3. Set the `BYPASS_AUTH` environment variable to `true`:
+   
+   BYPASS_AUTH=true
+
+4. Save the file and restart the backend server (`uvicorn main:app --reload`).
+
+----------------------------------------------------------------------
+2. HOW IT WORKS
+----------------------------------------------------------------------
+When `BYPASS_AUTH` is set to `true`:
+- The backend's authentication dependency (`get_current_user`) automatically
+  bypasses incoming JSON Web Token (JWT) checks.
+- If there are existing users in the local SQLite database, the system will
+  automatically log in as the first active user.
+- If the database is entirely empty, the system generates a simulated/mock user 
+  in-memory with the following credentials:
+  * ID: `1`
+  * Name: `Dev User`
+  * Email: `dev@example.com`
+  * Active Status: `True`
+
+This ensures that frontend requests (e.g. Chat, Document Downloads, Languages)
+complete successfully without needing valid headers or login tokens.
+
+----------------------------------------------------------------------
+3. FRONTEND TESTING AND DEVELOPMENT
+----------------------------------------------------------------------
+With `BYPASS_AUTH=true` enabled:
+- The frontend will automatically skip setup check blocks.
+- If you need to test the auth flow explicitly, simply set `BYPASS_AUTH=false`
+  in `backend/.env` and restart the backend server.
