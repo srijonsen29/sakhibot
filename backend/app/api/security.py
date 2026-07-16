@@ -6,10 +6,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET_KEY, BYPASS_AUTH
+from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, BYPASS_AUTH, JWT_ALGORITHM, JWT_SECRET_KEY
 from app.database import SessionLocal
 from app.models import User
-
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -50,19 +49,11 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    import os
-    from app.config import BYPASS_AUTH as config_bypass
-    env_bypass = os.getenv("BYPASS_AUTH", "false").lower() in ("true", "1", "yes")
-    if config_bypass or env_bypass:
-        # Dev override mode: check if a user exists in DB, otherwise use a mock/dev user
-        dev_user = db.query(User).filter(User.is_active == True).first()
-        if dev_user:
-            return dev_user
-        # fallback mock user if database is empty
-        return User(id=1, name="Dev User", email="dev@example.com", is_active=True)
-
-
     if credentials is None:
+        if BYPASS_AUTH:
+            dev_user = db.query(User).first()
+            if dev_user is not None:
+                return dev_user
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing token",
@@ -99,4 +90,3 @@ def get_current_user(
         )
 
     return user
-

@@ -5,11 +5,19 @@ from app.core.cache import get as cache_get, set as cache_set
 from app.core.groq_client import chat as groq_chat
 
 # ── initialise clients ───────────────────────────────────────────────────────
-print("Initialising Legal Retriever...")
+print(" Initialising Legal Retriever...")
 _embed_model = SentenceTransformer(EMBED_MODEL)
 _chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
-_collection = _chroma_client.get_collection("sakhibot_legal")
-print(f"Legal Retriever ready. DB has {_collection.count()} chunks.")
+try:
+    _collection = _chroma_client.get_collection("sakhibot_legal")
+except Exception:
+    print("⚠️  Collection 'sakhibot_legal' not found — creating empty collection.")
+    print("   Run `python ingest.py` to populate it with legal documents.")
+    _collection = _chroma_client.get_or_create_collection(
+        name="sakhibot_legal",
+        metadata={"hnsw:space": "cosine"},
+    )
+print(f" Legal Retriever ready. DB has {_collection.count()} chunks.")
 
 QUERY_ROUTING = {
     "Domestic Violence Act 2005": [

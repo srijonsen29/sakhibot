@@ -1,8 +1,8 @@
-from translate import (
+from app.core.translate import (
     detect_language, translate_to_english,
     translate_from_english, get_language_name
 )
-from emergency import (
+from app.core.emergency import (
     detect_emergency, build_emergency_response
 )
 
@@ -102,9 +102,9 @@ print("  PASS ✓")
 # ── full pipeline integration ─────────────────────────────────────────────────
 print("\n[TEST 7] Full pipeline integration")
 
-from translate import detect_language, translate_to_english, translate_from_english
-from emergency import detect_emergency, build_emergency_response
-from orchestrator import run as orchestrate
+from app.core.translate import detect_language, translate_to_english, translate_from_english
+from app.core.emergency import detect_emergency, build_emergency_response
+from app.agents.orchestrator import run as orchestrate
 
 def full_pipeline(message: str, district: str = "", state_name: str = "",
                   history: list = []) -> dict:

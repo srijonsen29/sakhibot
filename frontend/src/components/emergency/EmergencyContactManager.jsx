@@ -2,15 +2,13 @@ import { useEffect, useState } from 'react'
 import { getEmergencyContacts, updateEmergencyContacts } from '../../api'
 
 const EMPTY_CONTACT = { name: '', phone: '', relationship: '' }
+const RELATIONSHIPS = [
+  'Mother', 'Father', 'Sister', 'Brother', 'Husband', 'Friend',
+  'Neighbor', 'Colleague', 'Aunt', 'Uncle', 'Cousin', 'Guardian', 'Other',
+]
 
 export default function EmergencyContactManager({ onClose, onSaved }) {
-  const [contacts, setContacts] = useState([
-    { ...EMPTY_CONTACT },
-    { ...EMPTY_CONTACT },
-    { ...EMPTY_CONTACT },
-    { ...EMPTY_CONTACT },
-    { ...EMPTY_CONTACT },
-  ])
+  const [contacts, setContacts] = useState([])
   const [loadError, setLoadError] = useState('')
   const [saveError, setSaveError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -22,16 +20,12 @@ export default function EmergencyContactManager({ onClose, onSaved }) {
       try {
         // GET /api/auth/emergency-contacts returns a plain array
         const contactsArr = await getEmergencyContacts()
-        const filled = [...Array(5)].map((_, i) =>
-          contactsArr?.[i]
-            ? {
-                name: contactsArr[i].name || '',
-                phone: contactsArr[i].phone || '',
-                relationship: contactsArr[i].relationship || '',
-              }
-            : { ...EMPTY_CONTACT }
-        )
-        setContacts(filled)
+        const filled = (contactsArr || []).map(contact => ({
+          name: contact.name || '',
+          phone: contact.phone || '',
+          relationship: contact.relationship || '',
+        }))
+        setContacts(filled.length ? filled : [{ ...EMPTY_CONTACT }])
       } catch {
         setLoadError('Could not load your existing contacts. You can still update below.')
       } finally {
@@ -42,11 +36,24 @@ export default function EmergencyContactManager({ onClose, onSaved }) {
   }, [])
 
   const handleFieldChange = (index, field, value) => {
+    if (field === 'name') {
+      value = value.replace(/[^A-Za-z\s]/g, '')
+    }
+    if (field === 'phone') {
+      value = value.replace(/\D/g, '').slice(0, 10)
+    }
+
     setContacts(prev => {
       const updated = [...prev]
       updated[index] = { ...updated[index], [field]: value }
       return updated
     })
+    setSaved(false)
+    setSaveError('')
+  }
+
+  const addContact = () => {
+    setContacts(prev => [...prev, { ...EMPTY_CONTACT }])
     setSaved(false)
     setSaveError('')
   }
@@ -73,8 +80,8 @@ export default function EmergencyContactManager({ onClose, onSaved }) {
         setSaving(false)
         return
       }
-      if (!/^\+?[0-9]{7,15}$/.test(c.phone.trim())) {
-        setSaveError(`Invalid phone for "${c.name || 'contact'}". Use 7-15 digits.`)
+      if (c.phone.trim().length !== 10) {
+        setSaveError('Mobile number must be exactly 10 digits.')
         setSaving(false)
         return
       }
@@ -112,10 +119,10 @@ export default function EmergencyContactManager({ onClose, onSaved }) {
         <div className="sticky top-0 bg-emerald-600 px-6 py-5 rounded-t-3xl flex items-start justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-100">
-              Account settings
+              My contacts
             </p>
             <h2 id="ecm-title" className="mt-1 text-xl font-bold text-white">
-              Manage Emergency Contacts
+              Emergency contacts saved for your account
             </h2>
           </div>
           <button
@@ -158,26 +165,62 @@ export default function EmergencyContactManager({ onClose, onSaved }) {
                     </span>
                   </h3>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    {[
-                      { field: 'name', label: 'Name', placeholder: 'Jane Doe', type: 'text' },
-                      { field: 'phone', label: 'Mobile Number', placeholder: '9876543210', type: 'tel' },
-                      { field: 'relationship', label: 'Relationship', placeholder: 'Sister / Friend', type: 'text' },
-                    ].map(({ field, label, placeholder, type }) => (
-                      <div key={field}>
-                        <label className="text-xs font-medium text-gray-500">{label}</label>
-                        <input
-                          type={type}
-                          value={contact[field]}
-                          onChange={e => handleFieldChange(idx, field, e.target.value)}
-                          placeholder={placeholder}
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                                     focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
-                        />
-                      </div>
-                    ))}
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Name</label>
+                      <input
+                        type="text"
+                        value={contact.name}
+                        onChange={e => handleFieldChange(idx, 'name', e.target.value)}
+                        placeholder="Jane Doe"
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+                                   focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Mobile Number</label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        value={contact.phone}
+                        onChange={e => handleFieldChange(idx, 'phone', e.target.value)}
+                        placeholder="9876543210"
+                        maxLength={10}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+                                   focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Relationship</label>
+                      <select
+                        value={contact.relationship}
+                        onChange={e => handleFieldChange(idx, 'relationship', e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
+                                   focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      >
+                        <option value="" disabled>
+                          Select relationship
+                        </option>
+                        {RELATIONSHIPS.map(rel => (
+                          <option key={rel} value={rel}>
+                            {rel}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               ))}
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={addContact}
+                  className="inline-flex items-center justify-center rounded-2xl border border-emerald-200
+                             bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+                >
+                  + Add contact
+                </button>
+              </div>
 
               {saveError && (
                 <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

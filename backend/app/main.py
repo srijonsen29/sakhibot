@@ -4,6 +4,7 @@ from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 import traceback
 
+from app.config import ALLOWED_ORIGINS
 from app.api.auth import router as auth_router
 from app.database import Base, engine
 import app.models as models
@@ -19,11 +20,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-Base.metadata.create_all(bind=engine)
-app.include_router(auth_router)
-from app.config import ALLOWED_ORIGINS
-
-
+# CORS must be added before routers are included
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -32,6 +29,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+Base.metadata.create_all(bind=engine)
+app.include_router(auth_router)
 
 
 # ── request / response models ─────────────────────────────────────────────────
@@ -100,7 +99,7 @@ async def chat(req: ChatRequest, current_user=Depends(get_current_user)):
 
         # ── step 1: detect language ───────────────────────────────────────────
         detected_lang = req.language if req.language else detect_language(message)
-        from translate import get_language_name
+        from app.core.translate import get_language_name
         language_name = get_language_name(detected_lang)
 
         print(f"\n{'='*50}")
@@ -220,7 +219,7 @@ async def chat(req: ChatRequest, current_user=Depends(get_current_user)):
 @app.post("/api/document")
 async def generate_document(req: DocumentRequest, current_user=Depends(get_current_user)):
     try:
-        from agents.doc_drafter import (
+        from app.agents.doc_drafter import (
             docx_to_pdf_bytes,
             extract_collected_fields
         )

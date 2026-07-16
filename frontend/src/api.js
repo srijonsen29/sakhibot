@@ -25,11 +25,12 @@ export function clearAuthToken() {
   localStorage.removeItem('sakhibot_token')
 }
 
-export async function signupUser({ name, email, password }) {
+export async function signupUser({ name, email, password, emergency_contacts }) {
   const res = await client.post('/api/auth/signup', {
     name,
     email,
     password,
+    emergency_contacts,
   })
   return res.data
 }
@@ -97,4 +98,3 @@ export async function getEmergencyContacts() {
   const res = await client.get('/api/auth/emergency-contacts')
   return res.data
 }
-

@@ -74,7 +74,7 @@ python -m venv venv
 venv\Scripts\activate        # Windows
 source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
-uvicorn main:app --reload
+python main.py
 ```
 
 ### Frontend

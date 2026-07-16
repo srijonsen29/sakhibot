@@ -1,4 +1,5 @@
 from app.core.groq_client import chat as groq_chat
+from app.core.groq_client import chat as groq_chat
 
 # ── situational questions ─────────────────────────────────────────────────────
 SITUATION_QUESTIONS = [

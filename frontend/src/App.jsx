@@ -19,7 +19,8 @@ import {
   setupEmergencyContacts,
 } from './api'
 
-
+const BYPASS_AUTH = import.meta.env.VITE_BYPASS_AUTH === 'true'
+console.log('BYPASS_AUTH:', BYPASS_AUTH)
 const permissionKeyFor = user => `sakhibot_permissions_${user.id}`
 
 function getErrorMessage(err, fallback) {
@@ -35,16 +36,18 @@ function getErrorMessage(err, fallback) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState('landing') // 'landing' | 'chat'
+  const [screen, setScreen] = useState('landing') // 'landing' | 'chat' | 'sos'
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
-  const [authChecking, setAuthChecking] = useState(true)
-
+  const [authChecking, setAuthChecking] = useState(() =>
+    BYPASS_AUTH || Boolean(localStorage.getItem('sakhibot_token'))
+  )
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState('')
   const [authNotice, setAuthNotice] = useState('')
   const [user, setUser] = useState(null)
-  const [isLogin, setIsLogin] = useState(true)
+  // 'login' | 'signup-1' | 'signup-2'
+  const [authScreen, setAuthScreen] = useState('login')
   const [lang, setLang] = useState('en')
   const [permissionGranted, setPermissionGranted] = useState(false)
   const [district, setDistrict] = useState('')   // eslint-disable-line
@@ -57,7 +60,37 @@ export default function App() {
     content: m.content,
   }))
 
+  // ── push initial history state ────────────────────────────────────────────
   useEffect(() => {
+    window.history.replaceState({ type: 'auth', authScreen: 'login' }, '')
+  }, [])
+
+  // ── listen for browser back/forward ──────────────────────────────────────
+  useEffect(() => {
+    const onPop = e => {
+      const state = e.state
+      if (!state) return
+      if (state.type === 'auth') {
+        setAuthScreen(state.authScreen)
+      } else if (state.type === 'app') {
+        setScreen(state.screen)
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // ── navigate app screens with history ────────────────────────────────────
+  const goToScreen = scr => {
+    setScreen(scr)
+    window.history.pushState({ type: 'app', screen: scr }, '')
+  }
+
+  // ── verify existing token on load (or log in as the dev bypass user) ─────
+  useEffect(() => {
+    const token = localStorage.getItem('sakhibot_token')
+    if (!token && !BYPASS_AUTH) return
+
     let ignore = false
 
     async function verifySavedToken() {
@@ -69,6 +102,7 @@ export default function App() {
         setPermissionGranted(
           Boolean(localStorage.getItem(permissionKeyFor(currentUser)))
         )
+        window.history.replaceState({ type: 'app', screen: 'landing' }, '')
       } catch {
         clearAuthToken()
       } finally {
@@ -83,26 +117,13 @@ export default function App() {
     }
   }, [])
 
-
-  useEffect(() => {
-    if (!user || !user.has_emergency_contacts) return
-
-    if (screen === 'chat') {
-      window.history.pushState({ screen: 'chat' }, '')
-
-      const handlePopState = (event) => {
-        // When user clicks browser back, transition state to landing page instead of escaping app
-        setScreen('landing')
-      };
-
-      window.addEventListener('popstate', handlePopState)
-      return () => {
-        window.removeEventListener('popstate', handlePopState)
-      }
-    }
-  }, [screen, user])
-
-
+  // ── helper: navigate auth screens with history entry ─────────────────────
+  const goToAuthScreen = screen => {
+    setAuthScreen(screen)
+    setAuthError('')
+    setAuthNotice('')
+    window.history.pushState({ type: 'auth', authScreen: screen }, '')
+  }
 
   const handleLogin = async credentials => {
     setAuthError('')
@@ -116,6 +137,7 @@ export default function App() {
       setPermissionGranted(
         Boolean(localStorage.getItem(permissionKeyFor(data.user)))
       )
+      window.history.replaceState({ type: 'app', screen: 'landing' }, '')
     } catch (err) {
       setAuthError(
         getErrorMessage(err, 'Login failed. Please try again.')
@@ -132,8 +154,8 @@ export default function App() {
 
     try {
       await signupUser(payload)
-      setIsLogin(true)
-      setAuthNotice('Account created. Please login to continue.')
+      goToAuthScreen('login')
+      setAuthNotice('Account created! Please login to continue.')
     } catch (err) {
       setAuthError(
         getErrorMessage(err, 'Signup failed. Please try again.')
@@ -144,12 +166,15 @@ export default function App() {
   }
 
   const handleLogout = () => {
+    if (user) {
+      localStorage.removeItem(permissionKeyFor(user))  // reset so location page shows on next login
+    }
     clearAuthToken()
     setUser(null)
     setMessages([])
     setPermissionGranted(false)
-    setIsLogin(true)
-    setScreen('landing')
+    setAuthScreen('login')
+    window.history.replaceState({ type: 'auth', authScreen: 'login' }, '')
   }
 
 
@@ -235,27 +260,24 @@ export default function App() {
 
   // AUTH SCREEN
   if (!user) {
-    return isLogin ? (
-      <Login
-        loading={authLoading}
-        error={authError}
-        notice={authNotice}
-        onSwitch={() => {
-          setAuthError('')
-          setAuthNotice('')
-          setIsLogin(false)
-        }}
-        onLogin={handleLogin}
-      />
-    ) : (
+    if (authScreen === 'login') {
+      return (
+        <Login
+          loading={authLoading}
+          error={authError}
+          notice={authNotice}
+          onSwitch={() => goToAuthScreen('signup-1')}
+          onLogin={handleLogin}
+        />
+      )
+    }
+    return (
       <Signup
         loading={authLoading}
         error={authError}
-        onSwitch={() => {
-          setAuthError('')
-          setAuthNotice('')
-          setIsLogin(true)
-        }}
+        initialStep={authScreen === 'signup-2' ? 2 : 1}
+        onStepChange={step => goToAuthScreen(step === 2 ? 'signup-2' : 'signup-1')}
+        onSwitch={() => goToAuthScreen('login')}
         onSignup={handleSignup}
       />
     )
@@ -278,7 +300,7 @@ export default function App() {
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2.5">
             <button
-              onClick={() => setScreen('landing')}
+              onClick={() => goToScreen('landing')}
               className="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0"
               title="SakhiBot home"
             >
@@ -289,22 +311,21 @@ export default function App() {
               <h1 className="text-sm font-semibold text-gray-900 leading-none">
                 SakhiBot
               </h1>
-
-
             </div>
-          </div>
+          </div >
 
           <div className="flex shrink-0 items-center gap-2">
             <LanguageSelector value={lang} onChange={setLang} />
 
-            <button
-              type="button"
-              onClick={() => setShowContactManager(true)}
-              className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-              title="Manage emergency contacts"
-            >
-              Contacts
-            </button>
+            {screen !== 'landing' && (
+              <button
+                type="button"
+                onClick={() => setShowContactManager(true)}
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                Contacts
+              </button>
+            )}
 
             <button
               type="button"
@@ -314,88 +335,72 @@ export default function App() {
               Logout
             </button>
 
+            {user && (
+              <div className="flex flex-col items-center justify-center gap-1 px-1">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </span>
+                <span className="max-w-[7rem] truncate text-xs font-semibold text-emerald-700 text-center">
+                  {user.name}
+                </span>
+              </div>
+            )}
+
             {screen === 'chat' && (
               <button
-                onClick={() => setScreen('landing')}
+                onClick={() => goToScreen('landing')}
                 className="text-gray-400 hover:text-gray-600 p-1"
                 title="Home"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2
-         2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0
-         011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
               </button>
-            )}
-          </div>
-        </div>
-      </header>
+            )
+            }
+          </div >
+        </div >
+      </header >
 
       {/* content */}
-      {!permissionGranted ? (
-        <PermissionManager
-          onComplete={handlePermissionComplete}
-        />
-      ) : screen === 'landing' ? (
-        <LandingPage
-          onStart={(mode) => {
-            if (mode === 'sos') {
-              setScreen('chat')
-              // Automatically open SOS button trigger by modifying storage/state if needed
-              setTimeout(() => {
-                const buttons = Array.from(document.querySelectorAll('button'));
-                const sosButton = buttons.find(b => b.textContent.trim() === 'SOS');
-                if (sosButton) sosButton.click();
-              }, 150)
-            } else {
-              setScreen('chat')
-            }
-          }}
-          onManageContacts={() => setShowContactManager(true)}
-        />
-      ) : (
-
-        <main
-          className="mx-auto flex w-full max-w-4xl flex-1 flex-col bg-white
-             shadow-sm lg:my-6 lg:min-h-[calc(100vh-6rem)]
-             lg:rounded-3xl lg:border lg:border-emerald-100"
-        >
-          <ChatWindow
-            messages={messages}
-            loading={loading}
-            history={apiHistory}
+      {
+        !permissionGranted ? (
+          <PermissionManager onComplete={handlePermissionComplete} />
+        ) : screen === 'landing' || screen === 'sos' ? (
+          <LandingPage
+            onStart={() => goToScreen('chat')}
+            onSOS={() => goToScreen('sos')}
+            onContacts={() => setShowContactManager(true)}
           />
+        ) : (
+          <main
+            className="mx-auto flex w-full max-w-4xl flex-1 flex-col bg-white
+                     shadow-sm lg:my-6 lg:min-h-[calc(100vh-6rem)]
+                     lg:rounded-3xl lg:border lg:border-emerald-100"
+          >
+            <ChatWindow messages={messages} loading={loading} history={apiHistory} />
+            <InputBar onSend={handleSend} loading={loading} lang={lang} />
+          </main>
+        )}
 
-          <InputBar
-            onSend={handleSend}
-            loading={loading}
-            lang={lang}
-          />
-        </main>
-      )}
-
-      {permissionGranted && <SOSButton />}
-
+      {/* Single SOSButton — forceOpen when screen==='sos' so it auto-opens */}
+      {permissionGranted && (
+        <SOSButton
+          forceOpen={screen === 'sos'}
+          onForceClose={() => goToScreen('landing')}
+        />
+      )
+      }
       {showContactManager && (
         <EmergencyContactManager
           onClose={() => setShowContactManager(false)}
-          onSaved={async () => {
-            const refreshed = await getCurrentUser()
-            setUser(refreshed)
-          }}
+          onSaved={async () => setUser(await getCurrentUser())}
         />
       )}
-    </div>
+    </div >
   )
 }
-

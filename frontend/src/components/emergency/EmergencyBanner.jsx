@@ -31,9 +31,9 @@ export default function EmergencyBanner({ onDismiss }) {
 
       <div className="grid grid-cols-1 gap-2 mb-3 sm:grid-cols-2">
         {[
-          { number: '181',        label: "Women's Helpline" },
-          { number: '100',        label: 'Police' },
-          { number: '112',        label: 'National Emergency' },
+          { number: '181', label: "Women's Helpline" },
+          { number: '100', label: 'Police' },
+          { number: '112', label: 'National Emergency' },
           { number: '7827170170', label: 'NCW Helpline' },
         ].map((h, i) => (
           <a

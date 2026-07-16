@@ -35,6 +35,8 @@ ALLOWED_ORIGINS = [
 
 
 
+BYPASS_AUTH = os.getenv("BYPASS_AUTH", "false").lower() == "true"
+
 # ── model fallback chain ─────────────────────────────────────────────────────
 # if first model hits rate limit, automatically tries next one
 LLM_MODELS = [
