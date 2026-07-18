@@ -1,9 +1,30 @@
 from langdetect import detect, DetectorFactory
 from langdetect.lang_detect_exception import LangDetectException
 from deep_translator import GoogleTranslator
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 # make langdetect deterministic
 DetectorFactory.seed = 42
+
+# ── translation timeout guard ──────────────────────────────────────────────
+# deep_translator raises a clean RequestError on most connection failures
+# (already caught below), but a slow/throttled response from the free
+# Google Translate endpoint can HANG instead of raising anything at all —
+# with no exception to catch, that would block the whole request until the
+# frontend's own fetch gives up. This wraps every translate() call in a
+# hard timeout so a hang can never block longer than TRANSLATE_TIMEOUT_SECONDS.
+_translate_executor = ThreadPoolExecutor(max_workers=4)
+TRANSLATE_TIMEOUT_SECONDS = 5
+
+
+def _run_with_timeout(fn, *args, timeout=TRANSLATE_TIMEOUT_SECONDS, **kwargs):
+    future = _translate_executor.submit(fn, *args, **kwargs)
+    try:
+        return future.result(timeout=timeout)
+    except FutureTimeoutError:
+        print(f"  [TRANSLATE] call timed out after {timeout}s — aborting wait")
+        return None
+
 
 # ── supported languages ───────────────────────────────────────────────────────
 SUPPORTED_LANGUAGES = {
@@ -79,7 +100,8 @@ def detect_language(text: str) -> str:
 def translate_to_english(text: str, source_lang: str) -> str:
     """
     Translates text from source_lang to English.
-    Returns original text if already English or translation fails.
+    Returns original text if already English, translation fails, or
+    the call hangs past TRANSLATE_TIMEOUT_SECONDS.
     """
     if source_lang == "en" or not text.strip():
         return text
@@ -89,7 +111,7 @@ def translate_to_english(text: str, source_lang: str) -> str:
             source=source_lang,
             target="en"
         )
-        translated = translator.translate(text)
+        translated = _run_with_timeout(translator.translate, text)
         return translated if translated else text
     except Exception as e:
         print(f"  [TRANSLATE] to_english failed ({source_lang}→en): {e}")
@@ -99,7 +121,8 @@ def translate_to_english(text: str, source_lang: str) -> str:
 def translate_from_english(text: str, target_lang: str) -> str:
     """
     Translates text from English to target_lang.
-    Returns original text if target is English or translation fails.
+    Returns original text if target is English, translation fails, or
+    any chunk's call hangs past TRANSLATE_TIMEOUT_SECONDS.
     """
     if target_lang == "en" or not text.strip():
         return text
@@ -115,7 +138,7 @@ def translate_from_english(text: str, target_lang: str) -> str:
         translator  = GoogleTranslator(source="en", target=target_lang)
 
         for chunk in chunks:
-            result = translator.translate(chunk)
+            result = _run_with_timeout(translator.translate, chunk)
             translated.append(result if result else chunk)
 
         return "\n".join(translated)
