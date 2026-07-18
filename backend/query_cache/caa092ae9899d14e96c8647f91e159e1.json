@@ -1,0 +1,43 @@
+{
+  "timestamp": 1780210434.0817826,
+  "query": "I need information about domestic violence",
+  "data": {
+    "answer": "Domestic violence is defined as any act, omission, or commission or conduct of the respondent that harms or injures or endangers the health, safety, life, limb, or well-being, whether mental or physical, of the aggrieved person. This can include physical, emotional, or financial abuse. (Section 3 of the Protection of Women from Domestic Violence Act, 2005)\n\nYou have the right to live in a shared household, which includes a household owned or tenanted by either you or the respondent, or both jointly or singly. (Section 2(t) of the Protection of Women from Domestic Violence Act, 2005)\n\nIf you are experiencing domestic violence, you can report it to the concerned Protection Officer, who will inform you of your rights and provide you with assistance.\n\nPractical next step: Reach out to a local women's helpline or a Protection Officer in your area to report the domestic violence and seek help.",
+    "sources": [
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 0
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 13
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 8
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 4
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 12
+      }
+    ],
+    "chunks": [
+      "[Page 1] 1 THE PROTECTION OF WOMEN FROM DOMESTIC VIOLENCE ACT, 2005 _____________ ARRANGEMENT OF SECTIONS _____________ CHAPTER I PRELIMINARY SECTIONS 1. Short title, extent and commencement. 2. Definitions. CHAPTER II DOMESTIC VIOLENCE 3. Definitions of domestic violence. CHAPTER III POWERS AND DUTIES OF PROTECTION OFFICERS, SERVICE PROVIDERS, ETC. 4. Information to Protection Officer and exclusion of liability of informant. 5. Duties of police officers, service providers and Magistrate. 6. Duties of shelter homes. 7. Duties of medical facilities. 8. Appointment of Protection Officers. 9. Duties and functions of Protection Officers. 10. Service providers. 11. Duties of Government. CHAPTER IV PROCEDURE FOR OBTAINING ORDERS OF RELIEFS 12. Application of Magistrate. 13. Service of notice. 14. Counselling. 15. Assistance of welfare expert. 16. Proceedings to be held in camera. 17. Right to reside in a shared household. 18. Protection orders. 19. Residence orders. 20. Monetary reliefs. 21. Custody orders. 22. Compensation",
+      "PROTECTION OFFICERS, SERVICE PROVIDERS, ETC. 4. Information to Protection Officer and exclusion of liability of informant.—(1) Any person who has reason to believe that an act of domestic violence has been, or is being, or is likely to be committed, may give information about it to the concerned Protection Officer. (2) No liability, civil or criminal, shall be incurred by any person for giving in good faith of information for the purpose of sub-section (1). 5. Duties of police officers, service providers and Magistrate.—A police officer, Protection Officer, service provider or Magistrate who has received a complaint of domestic violence or is otherwise present at the place of an incident of domestic violence or when the incident of domestic violence is reported to him, shall inform the aggrieved person— (a) of her right to make an application for obtaining a relief by way of a protection order, an order for",
+      "the aggrieved person and the respondent, or owned or tenanted by either of them in respect of which either the aggrieved person or the respondent or both jointly or singly have any right, title, interest or equity and includes such a household which may belong to the joint family of which the respondent is a member, irrespective of whether the respondent or the aggrieved person has any right, title or interest in the shared household; (t) “shelter home” means any shelter home as may be notified by the State Government to be as helter home for the purposes of this Act. CHAPTER II DOMESTIC VIOLENCE 3. Definition of domestic violence.—For the purposes of this Act, any act, omission or commission or conduct of the respondent shall constitute domestic violence in case it— (a) harms or injures or endangers the health, safety, life, limb or well-being, whether mental or physical, of",
+      "made in the prescribed form on receipt of a complaint of domestic violence from an aggrieved person; (f) “domestic relationship” means a relationship between two persons who live or have, at any point of time, lived together in a shared household, when they are related by consanguinity, marriage, or through a relationship in the nature of marriage, adoption or are family members living together as a joint family; (g) “domestic violence” has the same meaning as assigned to it in section 3; (h) “dowry” shall have the same meaning as assigned to it in section 2 of the Dowry Prohibition Act, 1961 (28 of 1961); (i) “Magistrate” means the Judicial Magistrate of the first class, or as the case may be, the Metropolitan Magistrate, exercising jurisdiction under the Code of Criminal Procedure, 1973(2 of 1974) in the area where the aggrieved person resides temporarily or otherwise or the respondent resides",
+      "the aggrieved person has an interest or is entitled to use by virtue of the domestic relationship or which may be reasonably required by the aggrieved person or her children or her stridhan or any other property jointly or separately held by the aggrieved person; and (c) prohibition or restriction to continued access to resources or facilities which the aggrieved person is entitled to use or enjoy by virtue of the domestic relationship including access to the shared household. Explanation II.—For the purpose of determining whether any act, omission, commission or conduct of the respondent constitutes “domestic violence” under this section, the overall facts and circumstances of the case shall be taken into consideration. CHAPTER III POWERS AND DUTIES OF PROTECTION OFFICERS, SERVICE PROVIDERS, ETC. 4. Information to Protection Officer and exclusion of liability of informant.—(1) Any person who has reason to believe that an act of domestic violence has"
+    ],
+    "confidence": "high",
+    "query": "I need information about domestic violence"
+  }
+}

@@ -1,0 +1,127 @@
+======================================================================
+                 SAKHIBOT — TECHNICAL SYSTEM DESCRIPTION
+======================================================================
+
+This document outlines the architectural design and technical workflows 
+for the Authentication and Emergency Response (SOS) subsystems in SakhiBot.
+
+----------------------------------------------------------------------
+1. AUTHENTICATION SUBSYSTEM (SIGN UP & LOGIN)
+----------------------------------------------------------------------
+The application utilizes a secure, stateless, token-based authentication 
+flow backed by relational database mapping.
+
+* Backend API Framework: 
+  Built using FastAPI (Python). The authentication routing is modularized 
+  using APIRouter (prefix: `/api/auth`).
+
+* Database & ORM: 
+  - Engine: SQLite (self-contained relational database).
+  - Object-Relational Mapper (ORM): SQLAlchemy.
+  - Table schemas are bound to database metadata and created 
+    automatically on application startup (`Base.metadata.create_all`).
+
+* Request Validation: 
+  Strict request body validation is handled by Pydantic models (UserCreate, 
+  UserLogin, UserOut) enforcing email constraints, name lengths, and 
+  password checks before reaching database controllers.
+
+* Password Security (Salted Hashing):
+  Passwords are never stored in plain text. We utilize the Bcrypt library:
+  - On Sign Up: Plaintext password is encoded and hashed using a randomly 
+    generated cryptographic salt (`bcrypt.hashpw`).
+  - On Login: The raw password is compared against the stored hash 
+    using `bcrypt.checkpw`.
+
+* Token Authentication & Session Management (JWT):
+  - Session Protocol: JSON Web Tokens (JWT) signed via the HMAC-SHA256 
+    algorithm (`HS256`).
+  - Expiration: Tokens expire in 7 days (10080 minutes).
+  - Storage: The frontend React app caches the JWT in `localStorage` as 
+    `sakhibot_token`.
+  - Authorized Requests: The token is sent in the HTTP header on every 
+    subsequent request as a Bearer Token:
+    `Authorization: Bearer <JWT_TOKEN_HERE>`
+  - Backend Validation: FastAPI dependency injection intercepts the header 
+    using `Depends(bearer_scheme)`, decoding the signature and validating 
+    user claims against the database.
+
+
+----------------------------------------------------------------------
+2. EMERGENCY RESPONSE SYSTEM (SOS BUTTON)
+----------------------------------------------------------------------
+The SOS button provides real-time location tracking and dynamically queries 
+nearby support centers and police stations.
+
+* HTML5 Geolocation API with High Accuracy:
+  The frontend uses `navigator.geolocation.watchPosition` to fetch the 
+  user's precise real-time coordinates from the browser/device GPS.
+  Queries enforce high-accuracy parameters (`enableHighAccuracy: true`, 
+  `timeout: 10000`, `maximumAge: 0`). The UI displays a low-accuracy warning 
+  if the GPS accuracy is greater than 200 meters.
+
+* Location Query Debouncing:
+  To prevent excessive API rate-limiting, queries are debounced: a new location 
+  search is only triggered if the user's coordinates have shifted by more 
+  than 500 meters (calculated using the Haversine formula) since the last query. 
+  Opening the SOS modal or clicking the manual "Refresh" button overrides this.
+
+* Geoapify Places API (Primary Source):
+  For all support categories (Police, One Stop Centres, Women's Shelters, and 
+  Legal Aid offices), the app queries the Geoapify Places API in parallel. 
+  It queries specific Geoapify categories (`service.police`, `service.social_facility`, 
+  `office.lawyer`, etc.) within a 15,000-meter (15 km) radius, applying 
+  proximity biasing to receive results natively pre-sorted by distance.
+  API requests authenticate securely via `VITE_GEOAPIFY_API_KEY` defined in the 
+  frontend `.env` configuration.
+
+* Haversine Distance Sorting & Local Failover:
+  If any Geoapify Places API request fails (network error, invalid API key, 
+  quota limit) or returns zero results in the region, the app automatically 
+  falls back onto the local pre-seeded JSON dataset (`sosLocations.json`) for 
+  that category. Candidates from the local dataset are sorted client-side 
+  using the Haversine Formula:
+  - Distance = 2 * R * arcsin( sqrt( sin²(dLat/2) + cos(lat1)*cos(lat2)*sin²(dLng/2) ) )
+  - All fallback results are dynamically sorted in ascending order.
+
+----------------------------------------------------------------------
+3. DEFAULT CONFIGURATIONS (LOCAL PORT USAGE)
+----------------------------------------------------------------------
+For local development, the servers run on the following defaults:
+- Backend: http://localhost:8000 (FastAPI / Uvicorn)
+- Frontend: http://localhost:5173 (React / Vite)
+- CORS Middleware: Configured to support allowed origins via environmental variables.
+
+----------------------------------------------------------------------
+4. RECENT SYSTEM CHANGES & ENHANCEMENTS
+----------------------------------------------------------------------
+
+* SECURE AUTHENTICATION & PROTECTED APIs:
+  - Enforced authentication protection on all endpoints except `/api/auth/signup` and `/api/auth/login`.
+  - Protected endpoints include `/api/chat`, `/api/document`, `/api/health`, and `/api/languages`.
+  - Added JWT validation checking for expired (`ExpiredSignatureError`) and invalid (`JWTError`) tokens, returning specific `401 Unauthorized` responses.
+  - Implemented a developer bypass mode: setting `BYPASS_AUTH=true` in `.env` automatically routes local requests to a simulated dev user session.
+
+* CONFIGURATION CENTRALIZATION:
+  - Configurable parameters (`JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `ALLOWED_ORIGINS`, `DATABASE_URL`) were refactored into the backend's `.env` config.
+  - Hardcoded localhost endpoints in the frontend were migrated to Vite env variables (`import.meta.env.VITE_API_URL`) matching the `.env` settings.
+
+* EMERGENCY CONTACT MANAGEMENT:
+  - Created the `EmergencyContact` database model with relationships mapped to user accounts.
+  - Implemented backend routing (`POST /api/auth/emergency-contacts` & `GET /api/auth/emergency-contacts`) to handle emergency contact additions.
+  - Added validations: minimum of 3 and maximum of 5 contacts required; duplicate phone numbers and invalid phone formats are rejected.
+  - Added an `EmergencySetup` setup screen on the frontend which enforces setup of 3-5 contacts immediately after login before proceeding to the app.
+
+* PERMISSION AND LANDING PAGE IMPROVEMENTS:
+  - Permission manager requests location and microphone (no camera) permissions immediately after successful login, showing descriptive instructions and retries if access is denied.
+  - Clickable feature cards on the landing page map to Chat (for Legal answers and FIR drafts) or auto-open the emergency SOS panel (for Nearby support and Safety plans).
+  - Configured a React navigation back button blocker using history state pop listeners on the Chat screen, preventing accidental back actions to the landing page.
+
+* EMERGENCY BUTTON & ACCURACY UPGRADE:
+  - Transitioned all live support-service lookups (Police, One Stop Centres, Women's Shelters, and Legal Aid) to the Geoapify Places API, securing it using Vite env keys (`VITE_GEOAPIFY_API_KEY`).
+  - Implemented category mapping, proximity biasing, and strict circular filtering to fetch results natively sorted by proximity.
+  - Implemented proximity-bias and client-side Haversine distance-sorting on fallback data to guarantee correct nearest-first order of displayed locations.
+  - Added query debouncing to execute new lookups only when the user moves > 500 meters, protecting API quotas.
+  - Integrated 401/429 status-code and zero-result fallbacks that cleanly transition all lookups to local database (`sosLocations.json`) locations if the API is offline, disabled, limited, or has no nearby data.
+  - Added UI indicators for low location accuracy (exceeding 200m).
+

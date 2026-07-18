@@ -1,0 +1,43 @@
+{
+  "timestamp": 1780159805.3580532,
+  "query": "I want to file a DV complaint and I need to know where to go for help",
+  "data": {
+    "answer": "You can approach the Protection Officer or a police officer for help. They will inform you of your rights and provide you with the necessary assistance. \n\nAccording to Context 1, any person who has reason to believe that an act of domestic violence has been, or is being, or is likely to be committed, may give information about it to the concerned Protection Officer. \n\nContext 5 also states that a police officer, who receives information about domestic violence, shall inform the aggrieved person of her right to make an application for obtaining a relief by way of a protection order, among other things.\n\nPractical next step: Approach the nearest police station or Protection Officer's office and report the incident of domestic violence.",
+    "sources": [
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 13
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 18
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 24
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 40
+      },
+      {
+        "source": "Domestic Violence Act 2005",
+        "filename": "dv_act_2005.pdf",
+        "chunk_index": 14
+      }
+    ],
+    "chunks": [
+      "PROTECTION OFFICERS, SERVICE PROVIDERS, ETC. 4. Information to Protection Officer and exclusion of liability of informant.—(1) Any person who has reason to believe that an act of domestic violence has been, or is being, or is likely to be committed, may give information about it to the concerned Protection Officer. (2) No liability, civil or criminal, shall be incurred by any person for giving in good faith of information for the purpose of sub-section (1). 5. Duties of police officers, service providers and Magistrate.—A police officer, Protection Officer, service provider or Magistrate who has received a complaint of domestic violence or is otherwise present at the place of an incident of domestic violence or when the incident of domestic violence is reported to him, shall inform the aggrieved person— (a) of her right to make an application for obtaining a relief by way of a protection order, an order for",
+      "for issuance of a protection order; (d) to ensure that the aggrieved person is provided legal aid under the Legal Services Authorities Act, 1987 (39 of 1987) and make available free of cost the prescribed form in which a complaint is to be made; (e) to maintain a list of all service providers providing legal aid or counselling, shelter homes and medical facilities in a local area within the jurisdiction of the Magistrate; (f) to make available a safe shelter home, if the aggrieved person so requires and forward a copy of his report of having lodged the aggrieved person in a shelter home to the police station and the Magistrate having jurisdiction in the area where the shelter home is situated; (g) to get the aggrieved person medically examined, if she has sustained bodily injuries and forward a copy of the medical report to the police station and the",
+      "more reliefs under this Act: Provided that before passing any order on such application, the Magistrate shall take into consideration any domestic incident report received by him from the Protection Officer or the service provider. (2) The relief sought for under sub-section (1) may include a relief for issuance of an order for payment of compensation or damages without prejudice to the right of such person to institute a suit for compensation or damages for the injuries caused by the acts of domestic violence committed by the respondent: Provided that where a decree for any amount as compensation or damages has been passed by any court in favour of the aggrieved person, the amount, if any, paid or payable in pursuance of the order made by the Magistrate under this Act shall be set off against the amount payable under such decree and the decree shall, notwithstanding anything contained in",
+      "Act, order that a copy of such order, shall be given free of cost, to the parties to the application, the police officer in-charge of the police station in the jurisdiction of which the Magistrate has been approached, and any service provider located within the local limits of the jurisdiction of the court and if any service provider has registered a domestic incident report, to that service provider. 25. Duration and alteration of orders.—(1) A protection order made under section 18 shall be in force till the aggrieved person applies for discharge. (2) If the Magistrate, on receipt of an application from the aggrieved person or the respondent, is satisfied that there is a change in the circumstances requiring alteration, modification or revocation of any order made under this Act, he may, for reasons to be recorded in writing pass such order, as he may deem appropriate. 26. Relief in",
+      "is reported to him, shall inform the aggrieved person— (a) of her right to make an application for obtaining a relief by way of a protection order, an order for monetary relief, a custody order, a residence order, a compensation order or more than one such order under this Act; (b) of the availability of services of service providers; (c) of the availability of services of the Protection Officers; (d) of her right to free legal services under the Legal Services Authorities Act, 1987 (39 of 1987); (e) of her right to file a complaint under section 498A of the Indian Penal Code (45 of 1860),wherever relevant: Provided that nothing in this Act shall be construed in any manner as to relieve a police officer from his duty to proceed in accordance with law upon receipt of information as to the commission of a cognizable offence. 6. Duties of shelter"
+    ],
+    "confidence": "high",
+    "query": "I want to file a DV complaint and I need to know where to go for help"
+  }
+}
