@@ -12,8 +12,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # → backend/
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'sakhibot.db'}")
 
-CHROMA_PATH = str(BASE_DIR / "storage" / "chroma_db")
-EMBED_MODEL = "all-MiniLM-L6-v2"
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+EMBED_MODEL = "law-ai/InLegalBERT"
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 TOP_K = 5

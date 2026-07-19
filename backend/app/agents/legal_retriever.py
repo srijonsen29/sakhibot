@@ -1,15 +1,19 @@
-import chromadb
+from qdrant_client import QdrantClient
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 from sentence_transformers import SentenceTransformer
-from app.config import CHROMA_PATH, EMBED_MODEL, TOP_K
+from app.config import QDRANT_URL, QDRANT_API_KEY, EMBED_MODEL, TOP_K
 from app.core.cache import get as cache_get, set as cache_set
 from app.core.groq_client import chat as groq_chat
 
 # ── initialise clients ───────────────────────────────────────────────────────
 print("Initialising Legal Retriever...")
 _embed_model = SentenceTransformer(EMBED_MODEL)
-_chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
-_collection = _chroma_client.get_collection("sakhibot_legal")
-print(f"Legal Retriever ready. DB has {_collection.count()} chunks.")
+_qdrant_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+try:
+    count = _qdrant_client.count(collection_name="sakhibot_legal").count
+except Exception:
+    count = 0
+print(f"Legal Retriever ready. DB has {count} chunks.")
 
 QUERY_ROUTING = {
     "Domestic Violence Act 2005": [
@@ -84,33 +88,36 @@ def retrieve(query: str) -> dict:
             target_act = act
             break
 
-    query_embedding = _embed_model.encode([query]).tolist()
+    query_embedding = _embed_model.encode([query]).tolist()[0]
 
     if target_act:
         # retrieve targeted act context
-        results_target = _collection.query(
-            query_embeddings=query_embedding,
-            n_results=TOP_K,
-            where={"source": target_act}
+        results_target = _qdrant_client.search(
+            collection_name="sakhibot_legal",
+            query_vector=query_embedding,
+            limit=TOP_K,
+            query_filter=Filter(
+                must=[FieldCondition(key="source", match=MatchValue(value=target_act))]
+            )
         )
         # also retrieve general context in case other laws apply
-        results_general = _collection.query(
-            query_embeddings=query_embedding,
-            n_results=TOP_K
+        results_general = _qdrant_client.search(
+            collection_name="sakhibot_legal",
+            query_vector=query_embedding,
+            limit=TOP_K
         )
 
         chunks = []
         metadatas = []
         seen_keys = set()
 
-        def add_results(res):
-            docs = res["documents"][0] if res["documents"] else []
-            metas = res["metadatas"][0] if res["metadatas"] else []
-            for doc, meta in zip(docs, metas):
+        def add_results(res_list):
+            for res in res_list:
+                meta = res.payload
                 key = f"{meta['source']}_{meta['chunk_index']}"
                 if key not in seen_keys:
                     seen_keys.add(key)
-                    chunks.append(doc)
+                    chunks.append(meta['document'])
                     metadatas.append(meta)
 
         add_results(results_target)
@@ -121,12 +128,13 @@ def retrieve(query: str) -> dict:
         metadatas = metadatas[:TOP_K]
     else:
         # normal retrieval
-        results = _collection.query(
-            query_embeddings=query_embedding,
-            n_results=TOP_K
+        results = _qdrant_client.search(
+            collection_name="sakhibot_legal",
+            query_vector=query_embedding,
+            limit=TOP_K
         )
-        chunks    = results["documents"][0] if results["documents"] else []
-        metadatas = results["metadatas"][0]  if results["metadatas"]  else []
+        chunks = [res.payload['document'] for res in results]
+        metadatas = [res.payload for res in results]
 
     sources = []
     seen = set()
