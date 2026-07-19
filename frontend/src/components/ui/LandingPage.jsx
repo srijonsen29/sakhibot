@@ -1,27 +1,27 @@
 const FEATURES = [
   {
-    key: 'answers',
-    icon: 'LAW',
+    icon: '⚖️',
     title: 'Legal answers',
     desc: 'Guidance grounded in Indian laws such as the DV Act, POSH and IPC 498A.',
+    action: 'chat',   // redirects to chat
   },
   {
-    key: 'drafts',
-    icon: 'DOC',
+    icon: '📄',
     title: 'FIR drafts',
     desc: 'Complaint drafts and next steps that are easier to read, edit and print.',
+    action: 'chat',   // redirects to chat
   },
   {
-    key: 'support',
-    icon: 'HELP',
+    icon: '📍',
     title: 'Nearby support',
     desc: 'Find One Stop Centres, helplines, shelters and legal aid offices.',
+    action: 'sos',    // redirects to SOS at bottom
   },
   {
-    key: 'plan',
-    icon: 'PLAN',
+    icon: '🛡️',
     title: 'Safety plan',
     desc: 'Personalised steps for safer decisions in urgent or sensitive situations.',
+    action: 'sos',    // redirects to SOS at bottom
   },
 ]
 
@@ -33,18 +33,20 @@ const STEPS = [
 ]
 
 const LANGUAGES = [
-  'English',
-  'Hindi',
-  'Bengali',
-  'Tamil',
-  'Telugu',
-  'Marathi',
-  'Gujarati',
-  'Kannada',
-  'Malayalam',
+  'English', 'Hindi', 'Bengali', 'Tamil',
+  'Telugu', 'Marathi', 'Gujarati', 'Kannada', 'Malayalam',
 ]
 
-export default function LandingPage({ onStart, onManageContacts }) {
+export default function LandingPage({ onStart, onSOS, onContacts }) {
+
+  const handleFeatureClick = action => {
+    if (action === 'chat') {
+      onStart?.()
+    } else if (action === 'sos') {
+      onSOS?.()
+    }
+  }
+
   return (
     <main className="flex-1 overflow-y-auto">
       {/* hero */}
@@ -54,7 +56,6 @@ export default function LandingPage({ onStart, onManageContacts }) {
                         lg:items-center lg:px-8 lg:py-16">
           <div className="max-w-2xl">
 
-
             <h1 className="mt-5 text-3xl font-semibold leading-tight
                            text-gray-950 sm:text-4xl lg:text-5xl">
               Legal support for women, in the language they trust.
@@ -63,10 +64,10 @@ export default function LandingPage({ onStart, onManageContacts }) {
             <p className="mt-4 max-w-xl text-sm leading-7 text-gray-600
                           sm:text-base">
               SakhiBot helps women understand rights, prepare complaint drafts,
-              find emergency contacts and plan safer next steps across India.
+              and plan safer next steps across India.
             </p>
 
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-7 flex flex-wrap items-center gap-3">
               <button
                 onClick={onStart}
                 className="inline-flex items-center justify-center rounded-2xl
@@ -98,20 +99,17 @@ export default function LandingPage({ onStart, onManageContacts }) {
                 Call 181 now
               </a>
 
-              {onManageContacts && (
+              {onContacts && (
                 <button
                   type="button"
-                  onClick={onManageContacts}
+                  onClick={onContacts}
                   className="inline-flex items-center justify-center rounded-2xl
                              border border-emerald-300 bg-emerald-50 px-6 py-3.5 text-sm
-                             font-semibold text-emerald-700 transition-colors
-                             hover:bg-emerald-100 focus:outline-none"
+                             font-semibold text-emerald-700 shadow-sm transition-colors
+                             hover:bg-emerald-100 focus:outline-none focus:ring-2
+                             focus:ring-emerald-400 focus:ring-offset-2"
                 >
-                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  My Contacts
+                  My contacts
                 </button>
               )}
             </div>
@@ -182,7 +180,7 @@ export default function LandingPage({ onStart, onManageContacts }) {
         </div>
       </section>
 
-      {/* features */}
+      {/* features — clickable cards */}
       <section className="border-y border-emerald-100 bg-emerald-50/70">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row
@@ -206,27 +204,25 @@ export default function LandingPage({ onStart, onManageContacts }) {
             {FEATURES.map(feature => (
               <button
                 key={feature.title}
-                type="button"
-                onClick={() => {
-                  if (feature.key === 'support' || feature.key === 'plan') {
-                    onStart('sos')
-                  } else {
-                    onStart('chat')
-                  }
-                }}
-                className="text-left rounded-2xl border border-emerald-100 bg-white p-5
-                           shadow-sm hover:border-emerald-300 hover:shadow-md transition cursor-pointer"
+                onClick={() => handleFeatureClick(feature.action)}
+                className="rounded-2xl border border-emerald-100 bg-white p-5
+                           shadow-sm text-left transition-all duration-200
+                           hover:shadow-md hover:border-emerald-300
+                           hover:-translate-y-0.5 active:scale-95 group"
               >
                 <div className="flex h-10 w-10 items-center justify-center
-                                rounded-xl bg-emerald-100 text-[10px]
-                                font-bold text-emerald-700">
+                                rounded-xl bg-emerald-100 text-lg">
                   {feature.icon}
                 </div>
-                <h3 className="mt-4 text-sm font-semibold text-gray-900">
+                <h3 className="mt-4 text-sm font-semibold text-gray-900 group-hover:text-emerald-700 transition-colors">
                   {feature.title}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-gray-500">
                   {feature.desc}
+                </p>
+                {/* subtle hint */}
+                <p className="mt-3 text-xs text-emerald-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                  {feature.action === 'chat' ? 'Open chat →' : 'Go to SOS →'}
                 </p>
               </button>
             ))}
@@ -266,17 +262,18 @@ export default function LandingPage({ onStart, onManageContacts }) {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-emerald-100 bg-white p-5
-                            shadow-sm">
+            {/* Language coverage — plain text list, not pills/buttons */}
+            <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-900">
                 Language coverage
               </h3>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
                 {LANGUAGES.map(language => (
-                  <span key={language}
-                    className="rounded-full border border-emerald-200
-                               bg-emerald-50 px-3 py-1.5 text-xs font-medium
-                               text-emerald-700">
+                  <span
+                    key={language}
+                    className="text-sm text-gray-600 flex items-center gap-1.5"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
                     {language}
                   </span>
                 ))}

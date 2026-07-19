@@ -7,3 +7,8 @@ node_modules/
 query_cache/
 .venv/
 .pytest_cache/
+
+quality_logs/
+*.pdf
+scratch/
+storage/

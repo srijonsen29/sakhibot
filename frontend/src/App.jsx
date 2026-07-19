@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
-import LandingPage from './components/ui/LandingPage'
-import ChatWindow from './components/chat/ChatWindow'
-import InputBar from './components/chat/InputBar'
+import LandingPage from './components/LandingPage'
+import ChatWindow from './components/ChatWindow'
+import InputBar from './components/InputBar'
 import Login from './components/auth/Login'
 import Signup from './components/auth/Signup'
 import EmergencySetup from './components/auth/EmergencySetup'
-import EmergencyContactManager from './components/emergency/EmergencyContactManager'
-import LanguageSelector from './components/ui/LanguageSelector'
-import PermissionManager from './components/ui/PermissionManager'
-import SOSButton from './components/emergency/SOSButton'
+import LanguageSelector from './components/LanguageSelector'
+import PermissionManager from './components/PermissionManager'
+import SOSButton from './components/SOSButton'
 import {
   clearAuthToken,
   getCurrentUser,
@@ -49,7 +48,6 @@ export default function App() {
   const [permissionGranted, setPermissionGranted] = useState(false)
   const [district, setDistrict] = useState('')   // eslint-disable-line
   const [stateName, setStateName] = useState('')   // eslint-disable-line
-  const [showContactManager, setShowContactManager] = useState(false)
 
   // history for the API — role + content only
   const apiHistory = messages.map(m => ({
@@ -90,9 +88,9 @@ export default function App() {
     if (screen === 'chat') {
       window.history.pushState({ screen: 'chat' }, '')
 
-      const handlePopState = (event) => {
-        // When user clicks browser back, transition state to landing page instead of escaping app
-        setScreen('landing')
+      const handlePopState = () => {
+      // When user clicks browser back, transition state to landing page instead of escaping app
+      setScreen('landing')
       };
 
       window.addEventListener('popstate', handlePopState)
@@ -191,6 +189,7 @@ export default function App() {
           safetyPlan: data.safety_plan || [],
           documentReady: data.document_ready || false,
           documentType: data.document_type || '',
+          documentForm: data.document_form || null,
           nextQuestion: data.next_question || '',
           isEmergency: data.is_emergency || false,
           severity: data.severity || 'none',
@@ -299,15 +298,6 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => setShowContactManager(true)}
-              className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-              title="Manage emergency contacts"
-            >
-              Contacts
-            </button>
-
-            <button
-              type="button"
               onClick={handleLogout}
               className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
             >
@@ -361,7 +351,7 @@ export default function App() {
               setScreen('chat')
             }
           }}
-          onManageContacts={() => setShowContactManager(true)}
+
         />
       ) : (
 
@@ -385,16 +375,6 @@ export default function App() {
       )}
 
       {permissionGranted && <SOSButton />}
-
-      {showContactManager && (
-        <EmergencyContactManager
-          onClose={() => setShowContactManager(false)}
-          onSaved={async () => {
-            const refreshed = await getCurrentUser()
-            setUser(refreshed)
-          }}
-        />
-      )}
     </div>
   )
 }

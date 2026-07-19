@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import sosLocationData from '../../data/sosLocations.json'
 
 const HELPLINES = [
@@ -7,48 +7,61 @@ const HELPLINES = [
   { label: 'NCW Helpline', number: '7827170170', tone: 'secondary' },
 ]
 
-const SUPPORT_PLACES = [
-  {
-    key: 'police',
-    label: 'Police station directions',
-    destination: 'nearest police station',
-    searchQuery: 'police station',
-  },
-  {
-    key: 'osc',
-    label: 'One Stop Centre women',
-    destination: 'nearest One Stop Centre women',
-    searchQuery: 'One Stop Centre women',
-  },
-  {
-    key: 'shelter',
-    label: 'women shelter home',
-    destination: 'nearest women shelter home',
-    searchQuery: 'women shelter home',
-  },
-  {
-    key: 'legal',
-    label: 'legal aid office',
-    destination: 'nearest legal aid office',
-    searchQuery: 'legal aid office',
-  },
+const SEARCH_CATEGORIES = [
+  { key: 'police', label: 'Police Stations', keyword: 'police station', type: 'police' },
+  { key: 'osc', label: 'One Stop Centres', keyword: 'One Stop Centre', type: '' },
+  { key: 'shelter', label: "Women's Shelters", keyword: "Women's Shelter", type: '' },
+  { key: 'legal', label: 'Legal Aid Offices', keyword: 'Legal Aid Office', type: '' },
 ]
 
-const MAX_NEARBY_DISTANCE_KM = 20
-const LOOKUP_BOX_DEGREES = 0.08
-const POLICE_LOOKUP_RADIUS_METERS = 15000
+const SEARCH_RADIUS_METERS = 15000
+const MOVEMENT_THRESHOLD_METERS = 500
 const LOCAL_DATA_RADIUS_KM = 60
 
-const CATEGORY_BY_KEY = {
-  police: 'police',
-  osc: 'osc',
-  shelter: 'shelter',
-  legal: 'legal',
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
+
+let googleMapsScriptPromise = null
+function loadGoogleMapsScript() {
+  if (googleMapsScriptPromise) return googleMapsScriptPromise
+  if (!GOOGLE_API_KEY) {
+    return Promise.reject(new Error('Missing Google API key'))
+  }
+
+  googleMapsScriptPromise = new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('Window is not available'))
+      return
+    }
+
+    if (window.google?.maps) {
+      resolve(window.google)
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places,geometry`
+    script.async = true
+    script.defer = true
+    script.onload = () => {
+      if (window.google?.maps) {
+        resolve(window.google)
+      } else {
+        reject(new Error('Google Maps failed to load'))
+      }
+    }
+    script.onerror = () => reject(new Error('Google Maps script failed to load'))
+    document.head.appendChild(script)
+  })
+
+  return googleMapsScriptPromise
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180
 }
 
 function distanceKm(from, to) {
   const earthRadiusKm = 6371
-  const toRadians = value => (value * Math.PI) / 180
   const dLat = toRadians(to.lat - from.lat)
   const dLng = toRadians(to.lng - from.lng)
   const lat1 = toRadians(from.lat)
@@ -57,72 +70,152 @@ function distanceKm(from, to) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1) * Math.cos(lat2) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
 
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-function overpassCenter(element) {
-  if (Number.isFinite(element.lat) && Number.isFinite(element.lon)) {
-    return {
-      lat: element.lat,
-      lng: element.lon,
-    }
-  }
+function distanceMeters(from, to) {
+  return distanceKm(from, to) * 1000
+}
 
-  if (
-    Number.isFinite(element.center?.lat) &&
-    Number.isFinite(element.center?.lon)
-  ) {
-    return {
-      lat: element.center.lat,
-      lng: element.center.lon,
-    }
+function getCategoryForKey(key) {
+  switch (key) {
+    case 'police':
+      return 'Police'
+    case 'osc':
+      return 'One Stop Centre'
+    case 'shelter':
+      return "Women's Shelter"
+    case 'legal':
+      return 'Legal Aid Office'
+    default:
+      return 'Emergency service'
   }
-
-  return null
 }
 
 function readSavedLocation() {
   try {
     const saved = JSON.parse(localStorage.getItem('sakhibot_last_location'))
-    if (
-      Number.isFinite(saved?.lat) &&
-      Number.isFinite(saved?.lng)
-    ) {
+    if (Number.isFinite(saved?.lat) && Number.isFinite(saved?.lng)) {
       return saved
     }
   } catch {
     return null
   }
-
   return null
 }
 
-function findLocalMatch(coords, category) {
-  return sosLocationData.locations
-    .filter(location => location.category === category)
-    .filter(location => Number.isFinite(location.lat) && Number.isFinite(location.lng))
-    .map(location => ({
-      ...location,
-      distance: distanceKm(coords, location),
-      source: 'local',
-    }))
-    .filter(location => location.distance <= LOCAL_DATA_RADIUS_KM)
-    .sort((a, b) => a.distance - b.distance)[0]
+function normalizePlaceResult(result, category, coords) {
+  const location = result.geometry?.location
+    ? {
+      lat: Number(result.geometry.location.lat()),
+      lng: Number(result.geometry.location.lng()),
+    }
+    : {
+      lat: Number(result.lat),
+      lng: Number(result.lng),
+    }
+
+  return {
+    id: result.place_id || result.id || `${category}-${location.lat}-${location.lng}`,
+    name: result.name || result.formatted_address || category,
+    address: result.formatted_address || result.vicinity || '',
+    location,
+    distance: coords ? distanceKm(coords, location) : 0,
+    category,
+    source: 'google',
+    placeId: result.place_id,
+  }
 }
 
-export default function SOSButton() {
+function fallbackNearbyPlaces(coords) {
+  const results = {}
+
+  SEARCH_CATEGORIES.forEach(search => {
+    const match = sosLocationData.locations
+      .filter(location => location.category === search.key)
+      .filter(location => Number.isFinite(location.lat) && Number.isFinite(location.lng))
+      .map(location => ({
+        ...location,
+        distance: distanceKm(coords, location),
+        source: 'local',
+        location: { lat: location.lat, lng: location.lng },
+      }))
+      .filter(location => location.distance <= LOCAL_DATA_RADIUS_KM)
+      .sort((a, b) => a.distance - b.distance)[0]
+
+    if (match) {
+      results[search.key] = match
+    }
+  })
+
+  return results
+}
+
+async function searchNearbyPlacesWithGoogle(coords, mapElement) {
+  await loadGoogleMapsScript()
+  const google = window.google
+  const service = new google.maps.places.PlacesService(mapElement)
+  const matches = {}
+
+  await Promise.all(
+    SEARCH_CATEGORIES.map(async search => {
+      const request = {
+        location: new google.maps.LatLng(coords.lat, coords.lng),
+        radius: SEARCH_RADIUS_METERS,
+        keyword: search.keyword,
+        type: search.type || undefined,
+      }
+
+      return new Promise(resolve => {
+        service.nearbySearch(request, (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results?.length) {
+            const normalized = results
+              .map(result => normalizePlaceResult(result, search.key, coords))
+              .filter(result => result.distance <= SEARCH_RADIUS_METERS / 1000)
+              .sort((a, b) => a.distance - b.distance)
+
+            if (normalized.length) {
+              matches[search.key] = normalized[0]
+            }
+          }
+          resolve(null)
+        })
+      })
+    })
+  )
+
+  return matches
+}
+
+function createGoogleMapsSearchUrl(coords, destination) {
+  return `https://www.google.com/maps/dir/?api=1&origin=${coords.lat},${coords.lng}&destination=${encodeURIComponent(
+    destination
+  )}&travelmode=driving`
+}
+
+export default function SOSButton({ pageMode = false, onBack, forceOpen = false, onForceClose }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [tracking, setTracking] = useState(false)
-  const [supportMatches, setSupportMatches] = useState({})
-  const [closestSupportKey, setClosestSupportKey] = useState('police')
-  const watchIdRef = useRef(null)
+  const [nearbyMatches, setNearbyMatches] = useState({})
+  const [closestKey, setClosestKey] = useState('police')
+  const [selectedPlace, setSelectedPlace] = useState(null)
+  const [routeInfo, setRouteInfo] = useState(null)
+  const [mapError, setMapError] = useState('')
 
-  function applyPosition(position) {
+  const watchIdRef = useRef(null)
+  const lastSearchCoordsRef = useRef(null)
+  const mapContainerRef = useRef(null)
+  const mapRef = useRef(null)
+  const markersRef = useRef([])
+  const infoWindowRef = useRef(null)
+  const directionsRendererRef = useRef(null)
+
+  const updateLocation = useCallback(position => {
     const nextCoords = {
       lat: position.coords.latitude,
       lng: position.coords.longitude,
@@ -135,9 +228,169 @@ export default function SOSButton() {
 
     localStorage.setItem('sakhibot_last_location', JSON.stringify(nextCoords))
     setCoords(nextCoords)
+  }, [])
+
+  const hasMovedFarEnough = useCallback((from, to) => {
+    if (!from || !to) return true
+    return distanceMeters(from, to) >= MOVEMENT_THRESHOLD_METERS
+  }, [])
+
+  const ensureMap = useCallback(async () => {
+    if (mapRef.current || !mapContainerRef.current) return
+
+    try {
+      await loadGoogleMapsScript()
+      const google = window.google
+      mapRef.current = new google.maps.Map(mapContainerRef.current, {
+        center: { lat: coords?.lat || 20.5937, lng: coords?.lng || 78.9629 },
+        zoom: 13,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      })
+      infoWindowRef.current = new google.maps.InfoWindow()
+      directionsRendererRef.current = new google.maps.DirectionsRenderer({
+        suppressMarkers: false,
+        preserveViewport: true,
+      })
+      directionsRendererRef.current.setMap(mapRef.current)
+    } catch {
+      setMapError('Google Map failed to load. Fallback data will still be available.')
+    }
+  }, [coords])
+
+  function clearMarkers() {
+    markersRef.current.forEach(marker => marker.setMap(null))
+    markersRef.current = []
   }
 
-  function startTracking() {
+  const showMarkers = useCallback(places => {
+    clearMarkers()
+    if (!mapRef.current || !window.google) return
+    const google = window.google
+    const bounds = new google.maps.LatLngBounds()
+
+    if (coords) {
+      bounds.extend(coords)
+      new google.maps.Marker({
+        position: coords,
+        map: mapRef.current,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: '#0f766e',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+        title: 'You are here',
+      })
+    }
+
+    places.forEach(place => {
+      const marker = new google.maps.Marker({
+        position: place.location,
+        map: mapRef.current,
+        title: place.name,
+      })
+
+      marker.addListener('click', () => {
+        setSelectedPlace(place)
+        if (infoWindowRef.current) {
+          infoWindowRef.current.setContent(`
+            <div style="max-width:220px; font-size:13px; line-height:1.4;">
+              <strong>${place.name}</strong><br/>
+              <span>${place.address || getCategoryForKey(place.category)}</span><br/>
+              <span>${place.distance.toFixed(1)} km away</span>
+            </div>
+          `)
+          infoWindowRef.current.open(mapRef.current, marker)
+        }
+      })
+
+      markersRef.current.push(marker)
+      bounds.extend(place.location)
+    })
+
+    if (!bounds.isEmpty()) {
+      mapRef.current.fitBounds(bounds, 80)
+    }
+  }, [coords])
+
+  async function computeRoute(destination) {
+    if (!coords || !window.google || !mapRef.current) return null
+    setRouteInfo(null)
+
+    try {
+      const google = window.google
+      const directionsService = new google.maps.DirectionsService()
+      const response = await directionsService.route({
+        origin: coords,
+        destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      })
+
+      directionsRendererRef.current?.setDirections(response)
+      const leg = response.routes?.[0]?.legs?.[0]
+      if (leg) {
+        const info = {
+          distanceText: leg.distance?.text || '',
+          durationText: leg.duration?.text || '',
+        }
+        setRouteInfo(info)
+        return info
+      }
+    } catch {
+      setError('Could not load the route on the map. Opening Google Maps instead.')
+    }
+
+    return null
+  }
+
+  function openGoogleMapsDirections(place) {
+    if (!coords || !place) return '#'
+    const destination = `${place.location.lat},${place.location.lng}`
+    return createGoogleMapsSearchUrl(coords, destination)
+  }
+
+  const refreshNearby = useCallback(async (force = false) => {
+    if (!coords) return
+    if (!force && lastSearchCoordsRef.current && !hasMovedFarEnough(coords, lastSearchCoordsRef.current)) {
+      return
+    }
+
+    lastSearchCoordsRef.current = coords
+    setMapError('')
+    let results = {}
+
+    try {
+      await ensureMap()
+      if (window.google) {
+        results = await searchNearbyPlacesWithGoogle(coords, mapContainerRef.current)
+      }
+    } catch {
+      results = {}
+    }
+
+    if (!Object.keys(results).length) {
+      results = fallbackNearbyPlaces(coords)
+      if (!Object.keys(results).length) {
+        setMapError('No nearby emergency support found. Showing stored locations.')
+      }
+    }
+
+    setNearbyMatches(results)
+    const closest = Object.entries(results)
+      .sort(([, a], [, b]) => a.distance - b.distance)[0]
+    setClosestKey(closest?.[0] || 'police')
+
+    const nearbyPlaces = Object.values(results)
+    if (mapRef.current && nearbyPlaces.length) {
+      showMarkers(nearbyPlaces)
+    }
+  }, [coords, ensureMap, hasMovedFarEnough, showMarkers])
+
+  const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       setError('Location is not supported on this device.')
       return
@@ -157,7 +410,7 @@ export default function SOSButton() {
 
     navigator.geolocation.getCurrentPosition(
       position => {
-        applyPosition(position)
+        updateLocation(position)
         setTracking(false)
       },
       () => {
@@ -170,14 +423,29 @@ export default function SOSButton() {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 10000,
-        timeout: 12000,
+        timeout: 10000,
+        maximumAge: 0,
       }
     )
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       position => {
-        applyPosition(position)
+        const nextCoords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: Math.round(position.coords.accuracy || 0),
+          updatedAt: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        }
+        localStorage.setItem('sakhibot_last_location', JSON.stringify(nextCoords))
+        setCoords(prev => {
+          if (!prev || hasMovedFarEnough(prev, nextCoords)) {
+            return nextCoords
+          }
+          return prev
+        })
         setTracking(false)
       },
       () => {
@@ -190,153 +458,109 @@ export default function SOSButton() {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 10000,
-        timeout: 15000,
+        timeout: 10000,
+        maximumAge: 0,
       }
     )
-  }
+  }, [hasMovedFarEnough, updateLocation])
 
-  function stopTracking() {
+  const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null && navigator.geolocation) {
       navigator.geolocation.clearWatch(watchIdRef.current)
       watchIdRef.current = null
     }
     setTracking(false)
-  }
+  }, [])
+
+  const closeModal = useCallback(() => {
+    setOpen(false)
+    stopTracking()
+    onForceClose?.()
+  }, [onForceClose, stopTracking])
+
+  const handleBack = useCallback(() => {
+    stopTracking()
+    onBack?.()
+  }, [onBack, stopTracking])
 
   useEffect(() => {
+    if (!pageMode) return
+
+    const init = async () => {
+      await startTracking()
+    }
+
+    void init()
+
+    window.history.pushState({ sakhibotView: 'sos-page' }, '')
+
+    function handlePopState() {
+      stopTracking()
+      onBack?.()
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
     return () => {
+      window.removeEventListener('popstate', handlePopState)
       if (watchIdRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current)
       }
     }
-  }, [])
+  }, [pageMode, onBack, startTracking, stopTracking])
+
+  useEffect(() => {
+    if (pageMode) return
+
+    const init = async () => {
+      if (forceOpen) {
+        setOpen(true)
+        await startTracking()
+      } else {
+        setOpen(false)
+      }
+    }
+
+    void init()
+  }, [forceOpen, pageMode, startTracking])
+
+  useEffect(() => {
+    if (pageMode || forceOpen || !open) return
+
+    window.history.pushState({ sakhibotView: 'sos-modal' }, '')
+
+    function handlePopState() {
+      stopTracking()
+      setOpen(false)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [open, pageMode, forceOpen, stopTracking])
 
   useEffect(() => {
     if (!coords) return
+    let active = true
 
-    const controller = new AbortController()
-
-    async function findNearestPolice(matches) {
-      const query = `
-        [out:json][timeout:10];
-        (
-          node["amenity"="police"](around:${POLICE_LOOKUP_RADIUS_METERS},${coords.lat},${coords.lng});
-          way["amenity"="police"](around:${POLICE_LOOKUP_RADIUS_METERS},${coords.lat},${coords.lng});
-          relation["amenity"="police"](around:${POLICE_LOOKUP_RADIUS_METERS},${coords.lat},${coords.lng});
-        );
-        out center tags;
-      `
-
-      try {
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          body: query,
-          signal: controller.signal,
-        })
-
-        if (!response.ok) return
-
-        const data = await response.json()
-        const candidates = data.elements
-          .map(element => {
-            const center = overpassCenter(element)
-            if (!center) return null
-
-            return {
-              ...center,
-              name: element.tags?.name || 'Police station',
-            }
-          })
-          .filter(Boolean)
-          .map(result => ({
-            ...result,
-            distance: distanceKm(coords, result),
-          }))
-          .filter(result => result.distance <= MAX_NEARBY_DISTANCE_KM)
-          .sort((a, b) => a.distance - b.distance)
-
-        if (candidates[0]) {
-          matches.police = candidates[0]
-        }
-      } catch {
-        // Use Google Maps fallback when live OSM lookup is unavailable.
-      }
+    async function loadNearby() {
+      await refreshNearby()
+      if (!active) return
     }
 
-    async function findClosestSupport() {
-      const viewbox = [
-        coords.lng - LOOKUP_BOX_DEGREES,
-        coords.lat + LOOKUP_BOX_DEGREES,
-        coords.lng + LOOKUP_BOX_DEGREES,
-        coords.lat - LOOKUP_BOX_DEGREES,
-      ].join(',')
-
-      const matches = {}
-
-      SUPPORT_PLACES.forEach(place => {
-        const localMatch = findLocalMatch(coords, CATEGORY_BY_KEY[place.key])
-        if (localMatch) {
-          matches[place.key] = localMatch
-        }
-      })
-
-      if (!matches.police) {
-        await findNearestPolice(matches)
-      }
-
-      await Promise.all(
-        SUPPORT_PLACES.filter(place => !matches[place.key]).map(async place => {
-          const url = new URL('https://nominatim.openstreetmap.org/search')
-          url.searchParams.set('format', 'jsonv2')
-          url.searchParams.set('q', place.searchQuery)
-          url.searchParams.set('limit', '5')
-          url.searchParams.set('bounded', '1')
-          url.searchParams.set('countrycodes', 'in')
-          url.searchParams.set('viewbox', viewbox)
-
-          try {
-            const response = await fetch(url, { signal: controller.signal })
-            if (!response.ok) return
-
-            const results = await response.json()
-            const candidates = results
-              .map(result => ({
-                lat: Number(result.lat),
-                lng: Number(result.lon),
-                name: result.display_name,
-              }))
-              .filter(result => Number.isFinite(result.lat) && Number.isFinite(result.lng))
-              .map(result => ({
-                ...result,
-                distance: distanceKm(coords, result),
-              }))
-              .filter(result => result.distance <= MAX_NEARBY_DISTANCE_KM)
-              .sort((a, b) => a.distance - b.distance)
-
-            if (candidates[0]) {
-              matches[place.key] = candidates[0]
-            }
-          } catch {
-            // Keep the emergency UI usable even if map lookup is unavailable.
-          }
-        })
-      )
-
-      if (controller.signal.aborted) return
-
-      const closest = Object.entries(matches).sort(
-        ([, a], [, b]) => a.distance - b.distance
-      )[0]
-
-      setSupportMatches(matches)
-      setClosestSupportKey(closest?.[0] || 'police')
+    void loadNearby()
+    return () => {
+      active = false
     }
+  }, [coords, refreshNearby])
 
-    findClosestSupport()
-
-    return () => controller.abort()
-  }, [coords])
+  async function handleNavigate(place) {
+    if (!place) return
+    setSelectedPlace(place)
+    const route = await computeRoute(place.location)
+    if (!route) {
+      window.open(openGoogleMapsDirections(place), '_blank')
+    }
+  }
 
   const locationUrl = coords
     ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
@@ -374,24 +598,248 @@ export default function SOSButton() {
   }
 
   const supportUrl = place => {
-    const match = supportMatches[place.key]
-
-    if (coords && match) {
-      return `https://www.google.com/maps/dir/?api=1&origin=${coords.lat},${coords.lng}&destination=${match.lat},${match.lng}&travelmode=walking`
-    }
-
-    if (coords) {
-      return `https://www.google.com/maps/dir/?api=1&origin=${coords.lat},${coords.lng}&destination=${encodeURIComponent(
-        `${place.searchQuery} near ${coords.lat},${coords.lng}`
-      )}&travelmode=walking`
-    }
-
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      `${place.destination} near me`
-    )}`
+    if (!coords) return '#'
+    return openGoogleMapsDirections(place)
   }
 
-  const policeDirectionsUrl = supportUrl(SUPPORT_PLACES[0])
+  function renderPanelBody() {
+    const placeList = SEARCH_CATEGORIES.map(search => ({
+      ...search,
+      match: nearbyMatches[search.key],
+    }))
+
+    return (
+      <div className="space-y-5 p-5">
+        <div className="space-y-3">
+          <a
+            href="tel:112"
+            className="block rounded-2xl bg-red-600 px-5 py-5 text-center text-white shadow-sm hover:bg-red-700"
+          >
+            <span className="block text-2xl font-black">Call 112</span>
+            <span className="mt-1 block text-sm font-semibold text-red-100">
+              National emergency response
+            </span>
+          </a>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Nearest police station</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {nearbyMatches.police
+                    ? `${nearbyMatches.police.distance.toFixed(1)} km away`
+                    : 'Searching nearby police stations...'}
+                </p>
+              </div>
+              <a
+                href={supportUrl(nearbyMatches.police)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-fit items-center justify-center rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-100"
+              >
+                Open directions
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl overflow-hidden border border-gray-200 bg-gray-100">
+          <div ref={mapContainerRef} className="h-64 w-full bg-gray-100" />
+          {mapError && (
+            <div className="p-4 text-xs text-red-600">{mapError}</div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900">Live location</h3>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                Share this with a trusted contact or emergency responder.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => refreshNearby(true)}
+              disabled={tracking}
+              className="shrink-0 rounded-xl bg-white px-3 py-2 text-xs font-bold text-red-600 shadow-sm ring-1 ring-red-100 disabled:cursor-wait disabled:text-gray-400"
+            >
+              {tracking ? 'Locating' : 'Refresh'}
+            </button>
+          </div>
+
+          {coords ? (
+            <div className="mt-4 space-y-3">
+              <div className="rounded-xl bg-white p-3 text-xs text-gray-600 ring-1 ring-gray-100">
+                <p>Latitude: <span className="font-semibold">{coords.lat.toFixed(6)}</span></p>
+                <p>Longitude: <span className="font-semibold">{coords.lng.toFixed(6)}</span></p>
+                <p>Accuracy: about {coords.accuracy} meters</p>
+                <p>Updated: {coords.updatedAt}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <a
+                  href={locationUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl bg-gray-900 px-3 py-2.5 text-center text-xs font-bold text-white hover:bg-black"
+                >
+                  Open map
+                </a>
+                <button
+                  type="button"
+                  onClick={copyLocation}
+                  className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100"
+                >
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+                <button
+                  type="button"
+                  onClick={shareLocation}
+                  className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100"
+                >
+                  Share
+                </button>
+              </div>
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(locationText)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center rounded-xl bg-[#25D366] px-4 py-3 text-sm font-bold text-white hover:bg-[#1ebe5d]"
+              >
+                Share on WhatsApp
+              </a>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-xl bg-white p-3 text-xs text-gray-500 ring-1 ring-gray-100">
+              {tracking ? 'Getting your location...' : 'Location has not been captured yet.'}
+            </div>
+          )}
+
+          {error && (
+            <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-gray-900">Nearby emergency support</h3>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {placeList.map(place => {
+              const isClosest = place.key === closestKey
+              const match = place.match
+              return (
+                <button
+                  key={place.key}
+                  type="button"
+                  onClick={() => match && handleNavigate(match)}
+                  className={
+                    isClosest
+                      ? 'text-left rounded-xl border border-red-200 bg-red-600 px-4 py-4 text-sm font-bold text-white shadow-sm transition-colors duration-150 hover:bg-red-700'
+                      : 'text-left rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-semibold text-emerald-700 shadow-sm transition-colors duration-150 hover:bg-emerald-100'
+                  }
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{place.label}</span>
+                    {match ? (
+                      <span className={isClosest ? 'text-[11px] font-semibold text-white/80' : 'text-[11px] font-semibold text-emerald-700'}>
+                        {match.distance.toFixed(1)} km
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className={isClosest ? 'mt-1 text-xs text-white/80' : 'mt-1 text-xs text-emerald-700'}>
+                    {match ? (match.source === 'local' ? 'Verified from saved data' : 'Google Places result') : 'Tap to search in Google Maps'}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {selectedPlace && routeInfo && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
+            <p className="font-semibold">Route to {selectedPlace.name}</p>
+            <p className="mt-2">Distance: {routeInfo.distanceText}</p>
+            <p>Estimated time: {routeInfo.durationText}</p>
+            <a
+              href={openGoogleMapsDirections(selectedPlace)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white hover:bg-black"
+            >
+              Open in Google Maps
+            </a>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {HELPLINES.map(item => (
+            <a
+              key={item.number}
+              href={`tel:${item.number}`}
+              className="rounded-xl border border-red-100 bg-white px-3 py-3 text-center font-bold text-red-700 hover:bg-red-50"
+            >
+              <span className="block text-base">{item.number}</span>
+              <span className="mt-1 block text-[11px] font-semibold">{item.label}</span>
+            </a>
+          ))}
+        </div>
+
+        <p className="text-center text-xs leading-5 text-gray-400">
+          If you are in immediate danger, call 112 or 100 first.
+        </p>
+      </div>
+    )
+  }
+
+  useEffect(() => {
+    if (!coords) return
+
+    const init = async () => {
+      await ensureMap()
+    }
+
+    void init()
+  }, [coords, ensureMap])
+
+  useEffect(() => {
+    if (!coords) return
+    if (open || pageMode) {
+      const init = async () => {
+        await refreshNearby(true)
+      }
+
+      void init()
+    }
+  }, [open, pageMode, coords, refreshNearby])
+
+  if (pageMode) {
+    return (
+      <div className="mx-auto w-full max-w-lg px-4 sm:px-6 py-4">
+        <div className="rounded-3xl bg-white shadow-xl border border-red-100 overflow-hidden">
+          <div className="border-b border-red-100 bg-red-600 px-5 py-5 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-red-100">
+                  Emergency mode
+                </p>
+                <h2 className="mt-1 text-2xl font-bold">Get help now</h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleBack}
+                className="shrink-0 rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold hover:bg-white/25"
+                aria-label="Go back"
+              >
+                ← Back
+              </button>
+            </div>
+          </div>
+          {renderPanelBody()}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -401,11 +849,7 @@ export default function SOSButton() {
           setOpen(true)
           startTracking()
         }}
-        className="fixed bottom-5 right-5 z-40 flex h-16 w-16 items-center
-                   justify-center rounded-full bg-red-600 text-sm font-black
-                   text-white shadow-2xl shadow-red-300 ring-4 ring-red-100
-                   transition hover:bg-red-700 focus:outline-none
-                   focus:ring-4 focus:ring-red-300 sm:h-20 sm:w-20 sm:text-base"
+        className="fixed bottom-5 right-5 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-red-600 text-sm font-black text-white shadow-2xl shadow-red-300 ring-4 ring-red-100 transition hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300 sm:h-20 sm:w-20 sm:text-base"
         aria-label="Open SOS emergency help"
       >
         SOS
@@ -413,244 +857,31 @@ export default function SOSButton() {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-black/60 p-0
-                     sm:items-center sm:justify-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end bg-black/60 p-0 sm:items-center sm:justify-center sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="sos-title"
         >
-          <div
-            className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl
-                       bg-white shadow-2xl sm:max-w-lg sm:rounded-3xl"
-          >
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:max-w-lg sm:rounded-3xl">
             <div className="border-b border-red-100 bg-red-600 px-5 py-4 text-white">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-red-100">
                     Emergency mode
                   </p>
-                  <h2 id="sos-title" className="mt-1 text-xl font-bold">
-                    Get help now
-                  </h2>
+                  <h2 id="sos-title" className="mt-1 text-xl font-bold">Get help now</h2>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    stopTracking()
-                    setOpen(false)
-                  }}
-                  className="rounded-full bg-white/15 px-3 py-1.5 text-sm
-                             font-semibold hover:bg-white/25"
+                  onClick={closeModal}
+                  className="rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold hover:bg-white/25"
                   aria-label="Close SOS panel"
                 >
                   Close
                 </button>
               </div>
             </div>
-
-            <div className="space-y-5 p-5">
-              <div className="space-y-3">
-                <a
-                  href="tel:112"
-                  className="block rounded-2xl bg-red-600 px-5 py-5 text-center
-                             text-white shadow-sm hover:bg-red-700"
-                >
-                  <span className="block text-2xl font-black">Call 112</span>
-                  <span className="mt-1 block text-sm font-semibold text-red-100">
-                    National emergency response
-                  </span>
-                </a>
-
-                <a
-                  href={policeDirectionsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-2xl border-2 border-red-200 bg-red-50
-                             px-5 py-5 text-center text-red-700 hover:bg-red-100"
-                >
-                  <span className="block text-xl font-black">
-                    Nearest police station
-                  </span>
-                  <span className="mt-1 block text-sm font-semibold">
-                    {supportMatches.police
-                      ? `${supportMatches.police.distance.toFixed(1)} km away - exact location`
-                      : 'Open Google Maps nearby search'}
-                  </span>
-                </a>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900">
-                      Live location
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Share this with a trusted contact or emergency responder.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={startTracking}
-                    disabled={tracking}
-                    className="shrink-0 rounded-xl bg-white px-3 py-2 text-xs
-                               font-bold text-red-600 shadow-sm ring-1
-                               ring-red-100 disabled:cursor-wait
-                               disabled:text-gray-400"
-                  >
-                    {tracking ? 'Locating' : 'Refresh'}
-                  </button>
-                </div>
-
-                {coords ? (
-                  <div className="mt-4 space-y-3">
-                    <div className="rounded-xl bg-white p-3 text-xs text-gray-600 ring-1 ring-gray-100">
-                      <p>
-                        Latitude: <span className="font-semibold">{coords.lat.toFixed(6)}</span>
-                      </p>
-                      <p>
-                        Longitude: <span className="font-semibold">{coords.lng.toFixed(6)}</span>
-                      </p>
-                      <p>
-                        Accuracy: about {coords.accuracy} meters
-                      </p>
-                      <p>Updated: {coords.updatedAt}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <a
-                        href={locationUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-xl bg-gray-900 px-3 py-2.5 text-center
-                                   text-xs font-bold text-white hover:bg-black"
-                      >
-                        Open map
-                      </a>
-                      <button
-                        type="button"
-                        onClick={copyLocation}
-                        className="rounded-xl border border-gray-200 bg-white px-3
-                                   py-2.5 text-xs font-bold text-gray-700
-                                   hover:bg-gray-100"
-                      >
-                        {copied ? 'Copied' : 'Copy'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={shareLocation}
-                        className="rounded-xl border border-gray-200 bg-white px-3
-                                   py-2.5 text-xs font-bold text-gray-700
-                                   hover:bg-gray-100"
-                      >
-                        Share
-                      </button>
-                    </div>
-
-                    {/* WhatsApp share */}
-                    <a
-                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(locationText)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-2 rounded-xl
-                                 bg-[#25D366] px-4 py-3 text-sm font-bold text-white
-                                 hover:bg-[#1ebe5d] transition-colors"
-                    >
-                      <svg className="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                        <path d="M12.004 2.002a9.994 9.994 0 00-8.591 15.1L2 22l4.981-1.307A9.99 9.99 0 0012.004 22c5.514 0 9.996-4.482 9.996-9.998 0-5.515-4.482-9.998-9.996-10zm0 18.354a8.3 8.3 0 01-4.239-1.163l-.305-.18-3.155.828.843-3.08-.198-.317a8.354 8.354 0 116.054 3.912z"/>
-                      </svg>
-                      Share on WhatsApp
-                    </a>
-                  </div>
-                ) : (
-                  <div className="mt-4 rounded-xl bg-white p-3 text-xs text-gray-500 ring-1 ring-gray-100">
-                    {tracking
-                      ? 'Getting your location...'
-                      : 'Location has not been captured yet.'}
-                  </div>
-                )}
-
-                {error && (
-                  <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                    {error}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <h3 className="text-sm font-bold text-gray-900">
-                  Nearby emergency support
-                </h3>
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {SUPPORT_PLACES.map(place => {
-                    const isClosest = place.key === closestSupportKey
-                    const match = supportMatches[place.key]
-                    const hasVerifiedMatch = Boolean(match)
-
-                    return (
-                      <a
-                        key={place.destination}
-                        href={supportUrl(place)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={
-                          isClosest
-                            ? 'rounded-xl border border-red-200 bg-red-600 px-3 py-3 text-sm font-bold text-white hover:bg-red-700'
-                            : 'rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-800 hover:bg-emerald-100'
-                        }
-                      >
-                        <span className="block">{place.label}</span>
-                        {hasVerifiedMatch ? (
-                          <span
-                            className={
-                              isClosest
-                                ? 'mt-1 block text-[11px] font-semibold text-red-100'
-                                : 'mt-1 block text-[11px] font-semibold text-emerald-600'
-                            }
-                          >
-                            {match.distance.toFixed(1)} km away
-                            {isClosest ? ' - closest' : ''}
-                            {match.source === 'local' ? ' - verified JSON' : ''}
-                          </span>
-                        ) : (
-                          <span
-                            className={
-                              isClosest
-                                ? 'mt-1 block text-[11px] font-semibold text-red-100'
-                                : 'mt-1 block text-[11px] font-semibold text-emerald-600'
-                            }
-                          >
-                            Opens nearby map search
-                          </span>
-                        )}
-                      </a>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {HELPLINES.map(item => (
-                  <a
-                    key={item.number}
-                    href={`tel:${item.number}`}
-                    className="rounded-xl border border-red-100 bg-white px-3
-                               py-3 text-center font-bold text-red-700
-                               hover:bg-red-50"
-                  >
-                    <span className="block text-base">{item.number}</span>
-                    <span className="mt-1 block text-[11px] font-semibold">
-                      {item.label}
-                    </span>
-                  </a>
-                ))}
-              </div>
-
-              <p className="text-center text-xs leading-5 text-gray-400">
-                If you are in immediate danger, call 112 or 100 first.
-              </p>
-            </div>
+            {renderPanelBody()}
           </div>
         </div>
       )}

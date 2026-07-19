@@ -1,4 +1,4 @@
-from qdrant_client import QdrantClient
+﻿from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from sentence_transformers import SentenceTransformer
 from app.config import QDRANT_URL, QDRANT_API_KEY, EMBED_MODEL, TOP_K

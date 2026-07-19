@@ -1,10 +1,11 @@
-import json
+﻿import json
 import os
 from difflib import SequenceMatcher
-from pathlib import Path
 
-# backend/app/agents/resource_locator.py → backend/data/resources.json
-_DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "resources.json"
+from app.core.quality_gates import critique_resource_output
+
+# ── load resource database once ──────────────────────────────────────────────
+_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "resources.json")
 
 with open(_DB_PATH, "r", encoding="utf-8") as f:
     _DB = json.load(f)
@@ -256,6 +257,7 @@ def run(
         helplines:        list of national helplines,
         message:          str,
         asking_for:       str  (what we're asking the user)
+        quality_verdict:  dict (only present once a location search runs)
     }
     """
     # try to extract location from query if not provided
@@ -338,11 +340,31 @@ def run(
                 f"they will guide you to the nearest One Stop Centre."
             )
 
-    return {
+    final_helplines = helplines[:4]   # top 4 helplines
+
+    result = {
         "needs_location":  True,
         "location_found":  True,
         "resources":       all_resources,
-        "helplines":       helplines[:4],   # top 4 helplines
+        "helplines":       final_helplines,
         "message":         message,
         "asking_for":      ""
     }
+
+    # ── quality gate ───────────────────────────────────────────────────────
+    # Checks: every returned resource actually exists in the DB (defensive —
+    # catches a future bug in the matching/formatting logic before it ships
+    # a fabricated address to a user), and that a "no resources found" case
+    # always still carries the 181 fallback.
+    verdict = critique_resource_output(result, query, _DB)
+    result["quality_verdict"] = verdict
+
+    if not verdict["passed"]:
+        # if the gate specifically flagged a missing 181 fallback, fix it now
+        # rather than silently shipping a dead end to the user
+        if any("no 181 fallback" in w.lower() for w in verdict["warnings"]):
+            has_181 = any("181" in str(h) for h in result["helplines"])
+            if not has_181:
+                result["helplines"] = get_helplines()[:4]
+
+    return result

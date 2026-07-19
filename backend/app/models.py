@@ -25,7 +25,7 @@ class EmergencyContact(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String(120), nullable=False)
     phone = Column(String(30), nullable=False)
-    relationship_type = Column(String(120), nullable=False)
+    relationship_type = Column("relationship", String(120), nullable=False)
 
     user = relationship("User", back_populates="contacts")
 
