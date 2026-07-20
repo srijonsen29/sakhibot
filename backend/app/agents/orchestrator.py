@@ -35,6 +35,7 @@ class SakhiBotState(TypedDict):
     final_plan:      list
     document_ready:  bool
     document_type:   str
+    document_form:   dict | None
     next_question:   str
     asking_location: bool
 
@@ -141,6 +142,7 @@ def document_node(state: SakhiBotState) -> SakhiBotState:
                 "needs_document": False,
                 "document_ready": False,
                 "document_type":  "",
+                "document_form":  None,
                 "next_question":  "",
                 "message":        ""
             }
@@ -246,6 +248,7 @@ def synthesizer_node(state: SakhiBotState) -> SakhiBotState:
         "final_plan":      safety_plan,
         "document_ready":  doc_result.get("document_ready", False),
         "document_type":   doc_result.get("document_type", ""),
+        "document_form":   doc_result.get("document_form"),
         "next_question":   doc_result.get("next_question", ""),
         "asking_location": resource_result.get("asking_for") == "location"
     }
@@ -327,6 +330,7 @@ def run(
         "final_plan":       [],
         "document_ready":   False,
         "document_type":    "",
+        "document_form":    None,
         "next_question":    "",
         "asking_location":  False
     }
@@ -341,6 +345,7 @@ def run(
         "safety_plan":      result["final_plan"],
         "document_ready":   result["document_ready"],
         "document_type":    result["document_type"],
+        "document_form":    result["document_form"],
         "next_question":    result["next_question"],
         "is_emergency":     result["is_emergency"],
         "activated_agents": result["activated_agents"],

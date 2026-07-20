@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import sosLocationData from '../../data/sosLocations.json'
+import { findNearestAllCategories } from './geoapifyNearby'
 
 const HELPLINES = [
   { label: 'Police', number: '100', tone: 'secondary' },
@@ -14,9 +15,7 @@ const SEARCH_CATEGORIES = [
   { key: 'legal', label: 'Legal Aid Offices', keyword: 'Legal Aid Office', type: '' },
 ]
 
-const SEARCH_RADIUS_METERS = 15000
 const MOVEMENT_THRESHOLD_METERS = 500
-const LOCAL_DATA_RADIUS_KM = 60
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
 
@@ -56,27 +55,16 @@ function loadGoogleMapsScript() {
   return googleMapsScriptPromise
 }
 
-function toRadians(value) {
-  return (value * Math.PI) / 180
-}
-
-function distanceKm(from, to) {
-  const earthRadiusKm = 6371
-  const dLat = toRadians(to.lat - from.lat)
-  const dLng = toRadians(to.lng - from.lng)
-  const lat1 = toRadians(from.lat)
-  const lat2 = toRadians(to.lat)
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2)
-
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
 function distanceMeters(from, to) {
-  return distanceKm(from, to) * 1000
+  // Small helper still needed for movement-threshold check (not nearest-place logic)
+  const earthRadiusKm = 6371
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(to.lat - from.lat)
+  const dLng = toRad(to.lng - from.lng)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(from.lat)) * Math.cos(toRad(to.lat)) * Math.sin(dLng / 2) ** 2
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 1000
 }
 
 function getCategoryForKey(key) {
@@ -104,89 +92,6 @@ function readSavedLocation() {
     return null
   }
   return null
-}
-
-function normalizePlaceResult(result, category, coords) {
-  const location = result.geometry?.location
-    ? {
-      lat: Number(result.geometry.location.lat()),
-      lng: Number(result.geometry.location.lng()),
-    }
-    : {
-      lat: Number(result.lat),
-      lng: Number(result.lng),
-    }
-
-  return {
-    id: result.place_id || result.id || `${category}-${location.lat}-${location.lng}`,
-    name: result.name || result.formatted_address || category,
-    address: result.formatted_address || result.vicinity || '',
-    location,
-    distance: coords ? distanceKm(coords, location) : 0,
-    category,
-    source: 'google',
-    placeId: result.place_id,
-  }
-}
-
-function fallbackNearbyPlaces(coords) {
-  const results = {}
-
-  SEARCH_CATEGORIES.forEach(search => {
-    const match = sosLocationData.locations
-      .filter(location => location.category === search.key)
-      .filter(location => Number.isFinite(location.lat) && Number.isFinite(location.lng))
-      .map(location => ({
-        ...location,
-        distance: distanceKm(coords, location),
-        source: 'local',
-        location: { lat: location.lat, lng: location.lng },
-      }))
-      .filter(location => location.distance <= LOCAL_DATA_RADIUS_KM)
-      .sort((a, b) => a.distance - b.distance)[0]
-
-    if (match) {
-      results[search.key] = match
-    }
-  })
-
-  return results
-}
-
-async function searchNearbyPlacesWithGoogle(coords, mapElement) {
-  await loadGoogleMapsScript()
-  const google = window.google
-  const service = new google.maps.places.PlacesService(mapElement)
-  const matches = {}
-
-  await Promise.all(
-    SEARCH_CATEGORIES.map(async search => {
-      const request = {
-        location: new google.maps.LatLng(coords.lat, coords.lng),
-        radius: SEARCH_RADIUS_METERS,
-        keyword: search.keyword,
-        type: search.type || undefined,
-      }
-
-      return new Promise(resolve => {
-        service.nearbySearch(request, (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results?.length) {
-            const normalized = results
-              .map(result => normalizePlaceResult(result, search.key, coords))
-              .filter(result => result.distance <= SEARCH_RADIUS_METERS / 1000)
-              .sort((a, b) => a.distance - b.distance)
-
-            if (normalized.length) {
-              matches[search.key] = normalized[0]
-            }
-          }
-          resolve(null)
-        })
-      })
-    })
-  )
-
-  return matches
 }
 
 function createGoogleMapsSearchUrl(coords, destination) {
@@ -361,22 +266,31 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
 
     lastSearchCoordsRef.current = coords
     setMapError('')
-    let results = {}
 
+    // findNearestAllCategories handles both Geoapify (with correct coordinate
+    // order and client-side re-sort) and the local JSON fallback automatically.
+    let categoryResults = {}
     try {
-      await ensureMap()
-      if (window.google) {
-        results = await searchNearbyPlacesWithGoogle(coords, mapContainerRef.current)
+      categoryResults = await findNearestAllCategories(
+        coords.lat,
+        coords.lng,
+        sosLocationData.locations
+      )
+    } catch (err) {
+      console.warn('findNearestAllCategories failed:', err.message)
+    }
+
+    // Flatten to the same shape the rest of the component expects:
+    // nearbyMatches[key] = the single best result for that category
+    const results = {}
+    for (const [key, { results: list, source }] of Object.entries(categoryResults)) {
+      if (list.length > 0) {
+        results[key] = { ...list[0], source }
       }
-    } catch {
-      results = {}
     }
 
     if (!Object.keys(results).length) {
-      results = fallbackNearbyPlaces(coords)
-      if (!Object.keys(results).length) {
-        setMapError('No nearby emergency support found. Showing stored locations.')
-      }
+      setMapError('No nearby emergency support found. Showing stored locations.')
     }
 
     setNearbyMatches(results)
@@ -384,6 +298,8 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
       .sort(([, a], [, b]) => a.distance - b.distance)[0]
     setClosestKey(closest?.[0] || 'police')
 
+    // Initialise the visual Google Map (markers only — no Places lookup)
+    await ensureMap()
     const nearbyPlaces = Object.values(results)
     if (mapRef.current && nearbyPlaces.length) {
       showMarkers(nearbyPlaces)
@@ -643,12 +559,12 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
           </div>
         </div>
 
-        <div className="rounded-3xl overflow-hidden border border-gray-200 bg-gray-100">
+        {/* <div className="rounded-3xl overflow-hidden border border-gray-200 bg-gray-100">
           <div ref={mapContainerRef} className="h-64 w-full bg-gray-100" />
           {mapError && (
             <div className="p-4 text-xs text-red-600">{mapError}</div>
           )}
-        </div>
+        </div> */}
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
           <div className="flex items-start justify-between gap-3">

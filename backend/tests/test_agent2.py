@@ -1,5 +1,5 @@
 import os
-from agents.doc_drafter import (
+from app.agents.doc_drafter import (
     detect_document_type,
     build_form_schema,
     extract_fields,

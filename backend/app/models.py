@@ -29,4 +29,3 @@ class EmergencyContact(Base):
 
     user = relationship("User", back_populates="contacts")
 
-

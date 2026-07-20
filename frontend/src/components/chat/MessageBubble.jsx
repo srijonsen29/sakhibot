@@ -4,6 +4,7 @@ import SourceCard from '../cards/SourceCard'
 import ResourceCard from '../cards/ResourceCard'
 import SafetyPlanCard from '../cards/SafetyPlanCard'
 import DocumentCard from '../cards/DocumentCard'
+import DocumentFormCard from '../cards/DocumentFormCard'
 
 export default function MessageBubble({ msg, history }) {
   const isUser = msg.role === 'user'
@@ -46,8 +47,15 @@ export default function MessageBubble({ msg, history }) {
           <SourceCard sources={msg.sources} />
         )}
 
-        {/* document download card */}
-        {msg.documentReady && msg.documentType && (
+        {/* quality-gated, multilingual document form */}
+        {msg.documentForm ? (
+          <div className="mt-2">
+            <DocumentFormCard
+              form={msg.documentForm}
+              language={msg.detectedLang || 'en'}
+            />
+          </div>
+        ) : msg.documentReady && msg.documentType && (
           <DocumentCard
             documentType={msg.documentType}
             history={history}

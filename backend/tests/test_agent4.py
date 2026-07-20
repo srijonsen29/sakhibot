@@ -1,10 +1,10 @@
-from agents.safety_planner import (
+from app.agents.safety_planner import (
     run as safety_run,
     extract_situation_from_history,
     get_next_question,
     parse_plan_steps
 )
-from orchestrator import run as orchestrator_run
+from app.agents.orchestrator import run as orchestrator_run
 
 print("=" * 60)
 print("SakhiBot — Day 6 Test: Agent 4 + Orchestrator")

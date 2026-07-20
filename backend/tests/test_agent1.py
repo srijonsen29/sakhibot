@@ -1,6 +1,6 @@
-from agents.legal_retriever import run
+from app.agents.legal_retriever import run
 
-from cache import stats as cache_stats, clear as cache_clear
+from app.core.cache import stats as cache_stats, clear as cache_clear
 print(f"Cache status: {cache_stats()}")
 
 print("=" * 60)

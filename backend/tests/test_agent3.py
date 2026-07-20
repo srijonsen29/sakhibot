@@ -1,4 +1,4 @@
-from agents.resource_locator import (
+from app.agents.resource_locator import (
     run, find_oscs, find_shelters,
     find_legal_aid, get_helplines,
     needs_location, extract_location_from_query,

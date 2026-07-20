@@ -449,8 +449,7 @@ def _build_fir_letter(fields: dict, lang: str) -> bytes:
         f"<b>{fields.get('guardian_name', '_______________')}</b>, "
         f"{T('residing at', lang)} "
         f"<b>{fields.get('complainant_address', '_______________')}</b>, "
-        f"{T('hereby submit this complaint and request you to register a First '
-             'Information Report (FIR) against the accused person(s) named below.', lang)}",
+        f"{T('hereby submit this complaint and request you to register a First Information Report (FIR) against the accused person(s) named below.', lang)}",
         s["body"]
     ))
     story.append(Spacer(1, 0.18*cm))

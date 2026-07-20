@@ -1,8 +1,8 @@
-﻿from fastapi import APIRouter, Form, Response
+from fastapi import APIRouter, Form, Response
 from twilio.twiml.messaging_response import MessagingResponse
-from translate  import detect_language, translate_to_english, translate_from_english
-from emergency  import detect_emergency, build_emergency_response
-from orchestrator import run as orchestrate
+from app.core.translate  import detect_language, translate_to_english, translate_from_english
+from app.core.emergency  import detect_emergency, build_emergency_response
+from app.agents.orchestrator import run as orchestrate
 
 router = APIRouter()
 

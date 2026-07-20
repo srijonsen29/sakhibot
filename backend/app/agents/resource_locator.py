@@ -1,11 +1,11 @@
-﻿import json
+import json
 import os
 from difflib import SequenceMatcher
 
 from app.core.quality_gates import critique_resource_output
 
 # ── load resource database once ──────────────────────────────────────────────
-_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "resources.json")
+_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "resources.json")
 
 with open(_DB_PATH, "r", encoding="utf-8") as f:
     _DB = json.load(f)

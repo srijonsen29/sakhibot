@@ -1836,42 +1836,6 @@
       "source": "project-resources-json"
     },
     {
-      "id": "legal-dlsa-kolkata",
-      "category": "legal",
-      "name": "DLSA Kolkata",
-      "address": "High Court, Kolkata 700001",
-      "phone": "03322130000",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.5689,
-      "lng": 88.3436,
-      "source": "project-resources-json"
-    },
-    {
-      "id": "osc-one-stop-centre-kolkata-north",
-      "category": "osc",
-      "name": "One Stop Centre — Kolkata North",
-      "address": "R G Kar Medical College, Kolkata 700004",
-      "phone": "03325551234",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.6044,
-      "lng": 88.3786,
-      "source": "project-resources-json"
-    },
-    {
-      "id": "osc-one-stop-centre-kolkata-south",
-      "category": "osc",
-      "name": "One Stop Centre — Kolkata South",
-      "address": "SSKM Hospital, AJC Bose Road, Kolkata 700020",
-      "phone": "03322235678",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.5397,
-      "lng": 88.3416,
-      "source": "project-resources-json"
-    },
-    {
       "id": "police-way-360460191",
       "category": "police",
       "name": "boubazar police station",
@@ -1975,22 +1939,6 @@
       "source": "openstreetmap-overpass",
       "distanceFromCityKm": 1.49
     },
-    {
-      "id": "shelter-swadhar-home-kolkata",
-      "category": "shelter",
-      "name": "Swadhar Home — Kolkata",
-      "address": "Salt Lake Sector 3, Kolkata 700097",
-      "phone": "03323590000",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.5769,
-      "lng": 88.413,
-      "source": "project-resources-json"
-    },{
-  "country": "India",
-  "generatedAt": "2026-07-17T00:00:00.000Z",
-  "note": "Kolkata-only emergency-location dataset, consolidated from OpenStreetMap, Wikipedia and project resources. Verify entries before production use — many police-station coordinates still need geocoding.",
-  "locations": [
     {
       "id": "police-alipore-kolkata",
       "category": "police",
@@ -2130,18 +2078,6 @@
       "district": "Kolkata",
       "state": "West Bengal",
       "source": "manual-verified-no-coords"
-    },
-    {
-      "id": "police-ekbalpur-kolkata",
-      "category": "police",
-      "name": "Ekbalpur Police Station",
-      "address": "38B, Ekbalpore Road, Khidirpur, Kolkata 700023",
-      "phone": "03324492135",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.53387,
-      "lng": 88.32486,
-      "source": "manual-verified"
     },
     {
       "id": "police-entally-kolkata",
@@ -2723,4 +2659,3 @@
     }
   ]
 }
-  
