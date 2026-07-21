@@ -1,4 +1,4 @@
-﻿import re
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -226,3 +226,39 @@ def update_emergency_contacts(
         ))
     db.commit()
     return {"message": "Emergency contacts updated successfully"}
+
+
+from pydantic import BaseModel
+from app.core.sms import send_emergency_sms
+
+class SOSRequest(BaseModel):
+    latitude: float
+    longitude: float
+
+@router.post("/sos", status_code=status.HTTP_200_OK)
+def trigger_sos(
+    payload: SOSRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    contacts = db.query(EmergencyContact).filter(EmergencyContact.user_id == current_user.id).all()
+    if not contacts:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No emergency contacts found for this user."
+        )
+
+    location_url = f"https://www.google.com/maps?q={payload.latitude},{payload.longitude}"
+    message = f"EMERGENCY: {current_user.name} has triggered an SOS alert! Current location: {location_url}"
+
+    sent_count = 0
+    for contact in contacts:
+        success = send_emergency_sms(contact.phone, message)
+        if success:
+            sent_count += 1
+
+    return {
+        "message": "SOS alerts processed successfully.",
+        "contacts_notified": sent_count,
+        "total_contacts": len(contacts)
+    }

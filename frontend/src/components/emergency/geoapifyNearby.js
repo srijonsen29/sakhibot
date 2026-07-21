@@ -24,13 +24,13 @@ const GEOAPIFY_CATEGORIES = {
   legal: 'office.lawyer',
 }
 
-// Which source to trust FIRST for each category. Police/legal are well
-// covered by Geoapify's underlying OSM data — OSC/shelter mostly aren't,
-// so for those two, your own curated dataset is more accurate than
-// whatever Geoapify's "social_facility" category happens to return.
+// Always use the curated local JSON dataset first for ALL categories.
+// Geoapify returns incorrect/irrelevant results for Indian addresses
+// (e.g. shops or restaurants instead of police stations or legal offices).
+// It is only used as a last-resort fallback when local returns nothing.
 const PRIMARY_SOURCE = {
   police: 'local',
-  legal: 'geoapify',
+  legal: 'local',
   osc: 'local',
   shelter: 'local',
 }

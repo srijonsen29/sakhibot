@@ -413,11 +413,11 @@ def _build_fir_letter(fields: dict, lang: str) -> bytes:
         f"{T('Age', lang)}: {fields.get('complainant_age', '___')}<br/>"
         f"{fields.get('complainant_address', '_________________')}<br/>"
         f"{T('Phone', lang)}: {fields.get('complainant_phone', '_________________')}",
-        s["right"]
+        s["body"]
     ))
     story.append(Spacer(1, 0.25*cm))
 
-    story.append(Paragraph(f"{T('Date', lang)}: {date.today().strftime('%d %B %Y')}", s["right"]))
+    story.append(Paragraph(f"{T('Date', lang)}: {date.today().strftime('%d %B %Y')}", s["body"]))
     story.append(Spacer(1, 0.25*cm))
 
     story.append(Paragraph(T("To,", lang), s["body"]))

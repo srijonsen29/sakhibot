@@ -111,3 +111,8 @@ export async function getEmergencyContacts() {
   const res = await client.get('/api/auth/emergency-contacts')
   return res.data
 }
+
+export async function triggerSOSAlert({ latitude, longitude }) {
+  const res = await client.post('/api/auth/sos', { latitude, longitude })
+  return res.data
+}

@@ -2656,6 +2656,18 @@
       "lat": 22.534884,
       "lng": 88.325009,
       "source": "manual-verified"
+    },
+    {
+      "id": "police-anandapur-kolkata",
+      "category": "police",
+      "name": "Anandapur Police Station",
+      "address": "757 Madurdaha, Hossainpur, Kolkata, West Bengal 700107",
+      "phone": "03324435000",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.514121,
+      "lng": 88.408516,
+      "source": "manual-verified"
     }
   ]
 }

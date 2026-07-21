@@ -99,7 +99,7 @@ def classify_intent(message: str, history: list) -> list[str]:
 
 # ── node functions ────────────────────────────────────────────────────────────
 
-def router_node(state: SakhiBotState) -> SakhiBotState:
+def router_node(state: SakhiBotState) -> dict:
     """Classifies the message and sets activated_agents."""
     message  = state["message"]
     history  = state.get("history", [])
@@ -114,84 +114,80 @@ def router_node(state: SakhiBotState) -> SakhiBotState:
                 activated_agents.append(a)
 
     return {
-        **state,
         "is_emergency":     is_emergency,
-        "activated_agents": activated_agents
+        "activated_agents": activated_agents,
     }
 
 
-def legal_node(state: SakhiBotState) -> SakhiBotState:
+def legal_node(state: SakhiBotState) -> dict:
     """Runs Agent 1 — Legal Retriever."""
     if "legal" not in state.get("activated_agents", []):
-        return {**state, "legal_answer": "", "legal_sources": []}
+        return {"legal_answer": "", "legal_sources": []}
 
     result = legal_run(state["message"])
     return {
-        **state,
         "legal_answer":  result["answer"],
-        "legal_sources": result["sources"]
+        "legal_sources": result["sources"],
     }
 
 
-def document_node(state: SakhiBotState) -> SakhiBotState:
+def document_node(state: SakhiBotState) -> dict:
     """Runs Agent 2 — Document Drafter."""
     if "document" not in state.get("activated_agents", []):
         return {
-            **state,
             "doc_result": {
                 "needs_document": False,
                 "document_ready": False,
                 "document_type":  "",
                 "document_form":  None,
                 "next_question":  "",
-                "message":        ""
+                "message":        "",
             }
         }
 
     result = doc_run(state["message"], state.get("history", []))
-    return {**state, "doc_result": result}
+    return {"doc_result": result}
 
 
-def resource_node(state: SakhiBotState) -> SakhiBotState:
+def resource_node(state: SakhiBotState) -> dict:
     """Runs Agent 3 — Resource Locator."""
     if "resource" not in state.get("activated_agents", []):
         return {
-            **state,
             "resource_result": {
                 "resources":      [],
                 "helplines":      [],
                 "message":        "",
                 "asking_for":     "",
-                "location_found": False
+                "location_found": False,
             }
         }
 
     result = resource_run(
-    state["message"],
-    district=state.get("district", ""),
-    state=state.get("state_name", "")
+        state["message"],
+        district=state.get("district", ""),
+        state=state.get("state_name", ""),
     )
-    return {**state, "resource_result": result}
+    return {"resource_result": result}
 
-def safety_node(state: SakhiBotState) -> SakhiBotState:
+
+def safety_node(state: SakhiBotState) -> dict:
     """Runs Agent 4 — Safety Planner."""
     if "safety" not in state.get("activated_agents", []):
         return {
-            **state,
             "safety_result": {
                 "plan_steps":    [],
                 "plan_text":     "",
                 "is_urgent":     False,
                 "next_question": "",
-                "ready":         False
+                "ready":         False,
             }
         }
 
     result = safety_run(state["message"], state.get("history", []))
-    return {**state, "safety_result": result}
+    return {"safety_result": result}
 
 
-def synthesizer_node(state: SakhiBotState) -> SakhiBotState:
+def synthesizer_node(state: SakhiBotState) -> dict:
     """
     Combines all agent outputs into one clean response.
     """
@@ -240,7 +236,6 @@ def synthesizer_node(state: SakhiBotState) -> SakhiBotState:
         )
 
     return {
-        **state,
         "final_answer":    final_answer,
         "final_sources":   state.get("legal_sources", []),
         "final_resources": resource_result.get("resources", []),
@@ -250,7 +245,7 @@ def synthesizer_node(state: SakhiBotState) -> SakhiBotState:
         "document_type":   doc_result.get("document_type", ""),
         "document_form":   doc_result.get("document_form"),
         "next_question":   doc_result.get("next_question", ""),
-        "asking_location": resource_result.get("asking_for") == "location"
+        "asking_location": resource_result.get("asking_for") == "location",
     }
 
 
@@ -332,7 +327,7 @@ def run(
         "document_type":    "",
         "document_form":    None,
         "next_question":    "",
-        "asking_location":  False
+        "asking_location":  False,
     }
 
     result = _graph.invoke(initial_state)
@@ -349,5 +344,5 @@ def run(
         "next_question":    result["next_question"],
         "is_emergency":     result["is_emergency"],
         "activated_agents": result["activated_agents"],
-        "asking_location":  result["asking_location"]
+        "asking_location":  result["asking_location"],
     }

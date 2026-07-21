@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import sosLocationData from '../../data/sosLocations.json'
 import { findNearestAllCategories } from './geoapifyNearby'
+import { triggerSOSAlert } from '../../api'
 
 const HELPLINES = [
   { label: 'Police', number: '100', tone: 'secondary' },
@@ -18,6 +19,17 @@ const SEARCH_CATEGORIES = [
 const MOVEMENT_THRESHOLD_METERS = 500
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
+
+// ─── DEV TESTING ONLY ───────────────────────────────────────────────────────
+// Set to null to use real GPS. Set to coordinates to force a mock location.
+// Change to null when done testing.
+const DEV_MOCK_LOCATION = {
+  lat: 22.5114,
+  lng: 88.4133,
+  accuracy: 10,
+  updatedAt: 'now (mock: MSIT)',
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 let googleMapsScriptPromise = null
 function loadGoogleMapsScript() {
@@ -111,6 +123,9 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
   const [selectedPlace, setSelectedPlace] = useState(null)
   const [routeInfo, setRouteInfo] = useState(null)
   const [mapError, setMapError] = useState('')
+  const [alertSent, setAlertSent] = useState(false)
+  const [sosSending, setSosSending] = useState(false)
+  const [sosSuccess, setSosSuccess] = useState(false)
 
   const watchIdRef = useRef(null)
   const lastSearchCoordsRef = useRef(null)
@@ -267,6 +282,8 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
     lastSearchCoordsRef.current = coords
     setMapError('')
 
+    console.log('[SOS] Searching nearby with coords:', coords.lat, coords.lng)
+
     // findNearestAllCategories handles both Geoapify (with correct coordinate
     // order and client-side re-sort) and the local JSON fallback automatically.
     let categoryResults = {}
@@ -276,6 +293,7 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
         coords.lng,
         sosLocationData.locations
       )
+      console.log('[SOS] Nearest police:', categoryResults.police?.results?.[0]?.name, '—', categoryResults.police?.results?.[0]?.distance?.toFixed(2), 'km')
     } catch (err) {
       console.warn('findNearestAllCategories failed:', err.message)
     }
@@ -294,9 +312,15 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
     }
 
     setNearbyMatches(results)
-    const closest = Object.entries(results)
-      .sort(([, a], [, b]) => a.distance - b.distance)[0]
-    setClosestKey(closest?.[0] || 'police')
+    // Always highlight Police first in an SOS — only fall back to another
+    // category if no police result was found at all.
+    if (results.police) {
+      setClosestKey('police')
+    } else {
+      const closest = Object.entries(results)
+        .sort(([, a], [, b]) => a.distance - b.distance)[0]
+      setClosestKey(closest?.[0] || 'police')
+    }
 
     // Initialise the visual Google Map (markers only — no Places lookup)
     await ensureMap()
@@ -307,6 +331,18 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
   }, [coords, ensureMap, hasMovedFarEnough, showMarkers])
 
   const startTracking = useCallback(() => {
+    // ── DEV MOCK OVERRIDE ──────────────────────────────────────────────────
+    if (DEV_MOCK_LOCATION) {
+      console.log('[SOS] Using DEV mock location (Ekbalpur):', DEV_MOCK_LOCATION)
+      lastSearchCoordsRef.current = null   // force refreshNearby to re-run
+      localStorage.removeItem('sakhibot_last_location') // clear stale GPS cache
+      setError('')
+      setTracking(false)
+      setCoords({ ...DEV_MOCK_LOCATION })  // new object reference to trigger useEffect
+      return
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
     if (!navigator.geolocation) {
       setError('Location is not supported on this device.')
       return
@@ -391,11 +427,15 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
   const closeModal = useCallback(() => {
     setOpen(false)
     stopTracking()
+    setAlertSent(false)
+    setSosSuccess(false)
     onForceClose?.()
   }, [onForceClose, stopTracking])
 
   const handleBack = useCallback(() => {
     stopTracking()
+    setAlertSent(false)
+    setSosSuccess(false)
     onBack?.()
   }, [onBack, stopTracking])
 
@@ -403,6 +443,8 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
     if (!pageMode) return
 
     const init = async () => {
+      setAlertSent(false)
+      setSosSuccess(false)
       await startTracking()
     }
 
@@ -426,10 +468,38 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
   }, [pageMode, onBack, startTracking, stopTracking])
 
   useEffect(() => {
+    if (!(open || pageMode)) return
+    if (!coords || alertSent || sosSending) return
+
+    console.log('[SOS] Coords available, triggering SOS alert...', coords)
+
+    const sendSOS = async () => {
+      setSosSending(true)
+      setError('')
+      try {
+        const result = await triggerSOSAlert({ latitude: coords.lat, longitude: coords.lng })
+        console.log('[SOS] Alert sent successfully:', result)
+        setSosSuccess(true)
+        setAlertSent(true)
+      } catch (err) {
+        console.error('[SOS] Alert failed:', err.response?.data || err.message)
+        setError(err.response?.data?.detail || 'Failed to send SOS alerts to your contacts.')
+      } finally {
+        setSosSending(false)
+      }
+    }
+
+    sendSOS()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pageMode, coords, alertSent])
+
+  useEffect(() => {
     if (pageMode) return
 
     const init = async () => {
       if (forceOpen) {
+        setAlertSent(false)
+        setSosSuccess(false)
         setOpen(true)
         await startTracking()
       } else {
@@ -526,6 +596,17 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
 
     return (
       <div className="space-y-5 p-5">
+        {sosSending && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm font-medium text-amber-800 animate-pulse">
+            Sending location alert to emergency contacts...
+          </div>
+        )}
+        {sosSuccess && (
+          <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm font-medium text-green-800">
+            Emergency alert sent to all your saved contacts!
+          </div>
+        )}
+
         <div className="space-y-3">
           <a
             href="tel:112"
@@ -541,11 +622,15 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
             <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Nearest police station</p>
-                <p className="mt-1 text-sm text-gray-500">
-                  {nearbyMatches.police
-                    ? `${nearbyMatches.police.distance.toFixed(1)} km away`
-                    : 'Searching nearby police stations...'}
-                </p>
+                {nearbyMatches.police ? (
+                  <div className="mt-2">
+                    <p className="text-sm font-bold text-red-600">{nearbyMatches.police.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{nearbyMatches.police.address}</p>
+                    <p className="text-[11px] text-gray-400 mt-1">({nearbyMatches.police.distance.toFixed(1)} km away)</p>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-gray-500">Searching nearby police stations...</p>
+                )}
               </div>
               <a
                 href={supportUrl(nearbyMatches.police)}
@@ -762,6 +847,8 @@ export default function SOSButton({ pageMode = false, onBack, forceOpen = false,
       <button
         type="button"
         onClick={() => {
+          setAlertSent(false)
+          setSosSuccess(false)
           setOpen(true)
           startTracking()
         }}
