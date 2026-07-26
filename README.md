@@ -80,7 +80,7 @@ flowchart TB
         D4["Agent 4: SOS Safety Alert<br/>Risk Assessment & Action Plan"]
     end
 
-    subgraph KB[("Knowledge Base")]
+    subgraph KB["Knowledge Base"]
         E1["ChromaDB · Legal-BERT Embeddings<br/>DV Act · POSH Act · IPC 498A · more"]
     end
 
