@@ -96,14 +96,15 @@ flowchart TB
     end
 
     A1 & A2 & A3 --> A4 --> B1
-    B1 --> B2 --> B3 --> C1
+    B1 -- "no emergency detected" --> B2 --> B3 --> C1
+    B1 -- "emergency keyword matched — bypasses translation, orchestration & LLM" --> G1 & G2
     C1 <--> E1
     C1 --> D1 & D2 & D3 & D4
     D1 & D2 & D3 & D4 --> F1 --> F2 --> F3 --> G1 & G2
-    B3 -.-> B4
+    A4 -.-> B4
 ```
 
-The architecture follows a modular multi-tier design: input channels converge on a single FastAPI gateway, pass through a language layer (emergency detection happens **before** translation, so it's never delayed), get routed by a LangGraph orchestrator to one or more of four specialized agents, and every legally significant output passes a quality verification gate before being synthesized, translated back, and delivered.
+The architecture follows a modular multi-tier design: input channels converge on a single FastAPI gateway, then hit the Emergency Detector first. If a danger keyword or the SOS button fires, the request **bypasses translation, orchestration, and the LLM pipeline entirely** and returns helpline numbers directly — this is what gives SOS its 120–200 ms response time. Otherwise, the query is translated, routed by a LangGraph orchestrator to one or more of four specialized agents, and every legally significant output passes a quality verification gate before being synthesized, translated back, and delivered.
 
 ## The Four Agents
 
