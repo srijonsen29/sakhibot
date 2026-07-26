@@ -1,5 +1,5 @@
-from app.core.groq_client import chat as groq_chat
-from app.core.groq_client import chat as groq_chat
+﻿from app.core.groq_client import chat as groq_chat
+from app.core.quality_gates import critique_safety_output
 
 # ── situational questions ─────────────────────────────────────────────────────
 SITUATION_QUESTIONS = [
@@ -20,7 +20,6 @@ SITUATION_QUESTIONS = [
     }
 ]
 
-# ── safety plan generator prompt ─────────────────────────────────────────────
 SAFETY_PROMPT = """You are SakhiBot, a compassionate legal rights assistant for women in India.
 
 Based on the situation described below, create a clear, numbered safety plan.
@@ -31,7 +30,8 @@ Rules:
 2. Start with the most urgent step (if in danger, Step 1 is always "Call 181 now")
 3. Include document collection if relevant (Aadhaar, marriage cert, bank passbook)
 4. Mention the nearest One Stop Centre as a safe destination
-5. Reference specific laws where helpful (DV Act Section 18, CrPC Section 154)
+5. ONLY cite a specific Act or Section if it appears in "Legally grounded acts available"
+   below. If that list is empty, give practical guidance WITHOUT naming any Act or Section.
 6. Use simple language — the user may have limited education
 7. Be warm and encouraging — the user may be frightened
 8. End with "You are not alone. Help is available."
@@ -44,15 +44,15 @@ Format EXACTLY like this — numbered steps only, no headers:
 
 Situation details:
 {situation}
+
+Legally grounded acts available: {available_acts}
+{feedback_block}
 """
+
+MAX_ATTEMPTS = 2
 
 
 def extract_situation_from_history(history: list) -> dict:
-    """
-    Extracts situational details from conversation history.
-    Returns dict with keys: immediate_safety, children, escape_plan,
-    location, incident_type, has_document_need
-    """
     if not history:
         return {}
 
@@ -76,7 +76,6 @@ def extract_situation_from_history(history: list) -> dict:
 
         situation["raw_messages"].append(content)
 
-        # detect immediate danger
         danger_words = ["danger", "hitting me", "beating me", "scared",
                         "afraid", "threatening", "hurt me", "violent",
                         "maar raha", "darr", "help me now", "bachao"]
@@ -87,19 +86,16 @@ def extract_situation_from_history(history: list) -> dict:
         elif any(w in content for w in safe_words):
             situation["immediate_safety"] = "safe"
 
-        # detect children
         child_words = ["children", "child", "kids", "baby", "son", "daughter",
                        "bachche", "bacha"]
         if any(w in content for w in child_words):
             situation["children"] = "yes"
 
-        # detect escape plan
         escape_words = ["family", "parents", "mother", "sister", "friend",
                         "can go to", "stay with", "maike"]
         if any(w in content for w in escape_words):
             situation["escape_plan"] = "yes"
 
-        # detect incident type
         if "workplace" in content or "office" in content or "boss" in content:
             situation["incident_type"] = "workplace harassment"
         elif "dowry" in content or "dahej" in content:
@@ -111,7 +107,6 @@ def extract_situation_from_history(history: list) -> dict:
 
 
 def build_situation_summary(situation: dict) -> str:
-    """Builds a text summary of the situation for the LLM prompt."""
     lines = []
 
     if situation.get("immediate_safety") == "danger":
@@ -140,16 +135,12 @@ def build_situation_summary(situation: dict) -> str:
 
 
 def parse_plan_steps(raw_plan: str) -> list[str]:
-    """
-    Parses the LLM output into a clean list of steps.
-    """
+    import re
     steps = []
     for line in raw_plan.strip().split("\n"):
         line = line.strip()
         if not line:
             continue
-        # remove numbering prefix like "1." or "1)"
-        import re
         cleaned = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
         if cleaned:
             steps.append(cleaned)
@@ -157,11 +148,6 @@ def parse_plan_steps(raw_plan: str) -> list[str]:
 
 
 def get_next_question(history: list) -> str:
-    """
-    Returns the next situational question to ask,
-    or empty string if enough info collected.
-    """
-    # If no history at all, always start with safety
     if not history:
         return SITUATION_QUESTIONS[0]["question"]
 
@@ -169,69 +155,106 @@ def get_next_question(history: list) -> str:
 
     if situation.get("immediate_safety") == "unknown":
         return SITUATION_QUESTIONS[0]["question"]
-
     if situation.get("children") == "unknown":
         return SITUATION_QUESTIONS[1]["question"]
-
     if situation.get("escape_plan") == "unknown":
         return SITUATION_QUESTIONS[2]["question"]
+    return ""
 
-    return ""   # all questions answered
 
-def run(query: str, history: list = []) -> dict:
-    """
-    Full Agent 4 pipeline.
+def _available_act_names(retrieved_sources: list[dict] | None) -> str:
+    """Turns retrieved legal sources into a short comma list for the prompt."""
+    if not retrieved_sources:
+        return "(none retrieved this session)"
+    names = {s.get("source", "") for s in retrieved_sources if isinstance(s, dict)}
+    names.discard("")
+    return ", ".join(sorted(names)) if names else "(none retrieved this session)"
 
-    Input:
-        query:   current user message
-        history: full conversation history
 
-    Output: {
-        plan_steps:      list[str],
-        plan_text:       str,
-        is_urgent:       bool,
-        situation:       dict,
-        next_question:   str,
-        ready:           bool
-    }
-    """
-    situation     = extract_situation_from_history(history)
-    next_question = get_next_question(history)
+def _generate_plan(
+    situation_summary: str,
+    available_acts: str,
+    feedback: list[str]
+) -> list[str]:
+    """Runs one LLM generation attempt, folding in prior critique warnings."""
+    feedback_block = ""
+    if feedback:
+        feedback_block = (
+            "\nIMPORTANT — fix these problems from your previous attempt:\n"
+            + "\n".join(f"- {w}" for w in feedback)
+        )
+
+    prompt = SAFETY_PROMPT.format(
+        situation=situation_summary,
+        available_acts=available_acts,
+        feedback_block=feedback_block
+    )
+    raw_plan = groq_chat(
+        [{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=512
+    )
+    return parse_plan_steps(raw_plan)
+
+
+def run(
+    query: str,
+    history: list = [],
+    retrieved_sources: list[dict] | None = None
+) -> dict:
+    ...
+    combined_history = history + [{"role": "user", "content": query}]
+    situation     = extract_situation_from_history(combined_history)
+    next_question = get_next_question(combined_history)
     is_urgent     = situation.get("immediate_safety") == "danger"
 
-    # if urgent — generate plan immediately without asking all questions
-    if is_urgent or not next_question:
-        situation_summary = build_situation_summary(situation)
-
-        prompt = SAFETY_PROMPT.format(situation=situation_summary)
-        messages = [{"role": "user", "content": prompt}]
-
-        raw_plan = groq_chat(messages, temperature=0.2, max_tokens=512)
-        steps    = parse_plan_steps(raw_plan)
-
-        # ensure step 1 is always call 181 if urgent
-        if is_urgent and steps:
-            if "181" not in steps[0]:
-                steps.insert(0, "Call 181 (Women's Helpline) RIGHT NOW — "
-                               "tell them you are in danger and need help immediately.")
-
-        plan_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
-
+    if not (is_urgent or not next_question):
         return {
-            "plan_steps":    steps,
-            "plan_text":     plan_text,
-            "is_urgent":     is_urgent,
-            "situation":     situation,
-            "next_question": "",
-            "ready":         True
+            "plan_steps":      [],
+            "plan_text":       "",
+            "is_urgent":       False,
+            "situation":       situation,
+            "next_question":   next_question,
+            "ready":           False,
+            "quality_verdict": None,
         }
 
-    # not urgent — still collecting info
+    situation_summary = build_situation_summary(situation)
+    available_acts     = _available_act_names(retrieved_sources)
+
+    feedback     = []
+    steps        = []
+    last_verdict = {}
+
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        steps = _generate_plan(situation_summary, available_acts, feedback)
+
+        # deterministic fix — always applied before the gate, never worth a retry
+        if is_urgent and steps and "181" not in steps[0]:
+            steps.insert(0, "Call 181 (Women's Helpline) RIGHT NOW — "
+                            "tell them you are in danger and need help immediately.")
+
+        candidate_result = {
+            "plan_steps": steps,
+            "is_urgent":  is_urgent,
+        }
+        last_verdict = critique_safety_output(candidate_result, retrieved_sources)
+        last_verdict["attempt"] = attempt
+
+        if last_verdict.get("passed"):
+            break
+
+        # feed the specific warnings back in for the retry
+        feedback = last_verdict.get("warnings", [])
+
+    plan_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
+
     return {
-        "plan_steps":    [],
-        "plan_text":     "",
-        "is_urgent":     False,
-        "situation":     situation,
-        "next_question": next_question,
-        "ready":         False
+        "plan_steps":      steps,
+        "plan_text":        plan_text,
+        "is_urgent":        is_urgent,
+        "situation":        situation,
+        "next_question":    "",
+        "ready":            True,
+        "quality_verdict":  last_verdict,
     }

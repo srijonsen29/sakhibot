@@ -25,11 +25,12 @@ export function clearAuthToken() {
   localStorage.removeItem('sakhibot_token')
 }
 
-export async function signupUser({ name, email, password }) {
+export async function signupUser({ name, email, password, emergency_contacts }) {
   const res = await client.post('/api/auth/signup', {
     name,
     email,
     password,
+    emergency_contacts,
   })
   return res.data
 }
@@ -73,13 +74,17 @@ export async function downloadDocument({ documentType, history }) {
   return res.data
 }
 
-export async function submitDocumentForm({ documentType, fields, language = 'en' }) {
-  const { data } = await client.post(
+export async function submitDocumentForm({ documentType, fields, language }) {
+  const res = await client.post(
     '/api/document/form',
-    { document_type: documentType, fields, language },
+    {
+      document_type: documentType,
+      fields,
+      language,
+    },
     { responseType: 'blob' }
   )
-  return data
+  return res.data
 }
 
 export async function getLanguages() {
@@ -97,8 +102,17 @@ export async function setupEmergencyContacts(contacts) {
   return res.data
 }
 
+export async function updateEmergencyContacts(contacts) {
+  const res = await client.put('/api/auth/emergency-contacts', { contacts })
+  return res.data
+}
+
 export async function getEmergencyContacts() {
   const res = await client.get('/api/auth/emergency-contacts')
   return res.data
 }
 
+export async function triggerSOSAlert({ latitude, longitude }) {
+  const res = await client.post('/api/auth/sos', { latitude, longitude })
+  return res.data
+}

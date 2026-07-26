@@ -49,6 +49,7 @@ class ChatResponse(BaseModel):
     safety_plan:      list = []
     document_ready:   bool = False
     document_type:    str  = ""
+    document_form:    dict | None = None
     next_question:    str  = ""
     is_emergency:     bool = False
     severity:         str  = "none"
@@ -60,6 +61,11 @@ class ChatResponse(BaseModel):
 class DocumentRequest(BaseModel):
     document_type: str
     history:       list = []
+
+class DocumentFormRequest(BaseModel):
+    document_type: str
+    fields: dict
+    language: str = "en"
 
 
 # ── health check ──────────────────────────────────────────────────────────────
@@ -193,6 +199,7 @@ async def chat(req: ChatRequest, current_user=Depends(get_current_user)):
             safety_plan=result.get("safety_plan", []),
             document_ready=result.get("document_ready", False),
             document_type=result.get("document_type", ""),
+            document_form=result.get("document_form"),
             next_question=next_q,
             is_emergency=em.is_emergency,
             severity=em.severity,
@@ -239,6 +246,44 @@ async def generate_document(req: DocumentRequest, current_user=Depends(get_curre
         return JSONResponse(
             status_code=500,
             content={"error": str(e), "message": "Document generation failed"}
+        )
+
+
+@app.post("/api/document/form")
+async def generate_document_from_form(
+    req: DocumentFormRequest,
+    current_user=Depends(get_current_user),
+):
+    try:
+        from app.agents.doc_drafter import generate_from_form
+
+        pdf_bytes, verdict = generate_from_form(
+            req.document_type,
+            req.fields,
+            req.language,
+        )
+        if not verdict["passed"]:
+            invalid_fields = []
+            if any("Phone number" in warning for warning in verdict["warnings"]):
+                invalid_fields.append("complainant_phone")
+            verdict["invalid_fields"] = invalid_fields
+            return JSONResponse(status_code=422, content={"verdict": verdict})
+
+        filename = f"sakhibot_{req.document_type}_{req.language}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
+        )
+    except ValueError as exc:
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc), "message": "Document generation failed"},
         )
 
 

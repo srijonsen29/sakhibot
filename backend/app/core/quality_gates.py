@@ -1,10 +1,10 @@
-import json
+﻿import json
 import os
 import re
 import time
 from typing import Callable
 
-from groq_client import chat as groq_chat
+from app.core.groq_client import chat as groq_chat
 
 PHONE_PATTERN = re.compile(r"^[6-9]\d{9}$")  # 10-digit Indian mobile numbers
 MIN_DESCRIPTION_WORDS = 4

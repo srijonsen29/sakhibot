@@ -6,23 +6,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import fitz
-import chromadb
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
 from sentence_transformers import SentenceTransformer
-from app.config import CHROMA_PATH, EMBED_MODEL
+from app.config import QDRANT_URL, QDRANT_API_KEY, EMBED_MODEL
 
 print("Loading embedding model...")
 model = SentenceTransformer(EMBED_MODEL)
-client = chromadb.PersistentClient(path=CHROMA_PATH)
+client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
-try:
-    client.delete_collection("sakhibot_legal")
+if client.collection_exists(collection_name="sakhibot_legal"):
+    client.delete_collection(collection_name="sakhibot_legal")
     print("Old collection deleted.")
-except:
-    pass
 
-collection = client.create_collection(
-    name="sakhibot_legal",
-    metadata={"hnsw:space": "cosine"}
+client.create_collection(
+    collection_name="sakhibot_legal",
+    vectors_config=VectorParams(size=model.get_sentence_embedding_dimension(), distance=Distance.COSINE),
 )
 
 def extract_text(pdf_path):
@@ -96,15 +95,15 @@ for filename, cfg in CONFIGS.items():
     path = os.path.join(DOCS, filename)
     if not os.path.exists(path):
         print(f"NOT FOUND: {filename}")
-        summary.append((cfg["name"], 0, "❌ FILE NOT FOUND"))
+        summary.append((cfg["name"], 0, "[FAIL] FILE NOT FOUND"))
         continue
 
     text, pages_ok, pages_total = extract_text(path)
     coverage = pages_ok / pages_total * 100 if pages_total else 0
 
     if not text.strip() or pages_ok < 2:
-        print(f"⚠ {filename}: only {pages_ok}/{pages_total} pages have text — scanned PDF!")
-        summary.append((cfg["name"], 0, "❌ SCANNED — re-download needed"))
+        print(f"[WARN] {filename}: only {pages_ok}/{pages_total} pages have text -- scanned PDF!")
+        summary.append((cfg["name"], 0, "[FAIL] SCANNED -- re-download needed"))
         continue
 
     words = len(text.split())
@@ -120,17 +119,25 @@ for filename, cfg in CONFIGS.items():
     for i in range(0, len(chunks), 50):
         batch = chunks[i:i+50]
         emb = model.encode(batch).tolist()
-        ids = [f"{filename}_{chunk_id+j}" for j in range(len(batch))]
-        metas = [{
-            "source": cfg["name"],
-            "filename": filename,
-            "chunk_index": i+j
-        } for j in range(len(batch))]
-        collection.add(ids=ids, embeddings=emb, documents=batch, metadatas=metas)
+        
+        points = []
+        for j in range(len(batch)):
+            payload = {
+                "source": cfg["name"],
+                "filename": filename,
+                "chunk_index": i+j,
+                "document": batch[j]
+            }
+            points.append(PointStruct(id=chunk_id+j, vector=emb[j], payload=payload))
+        
+        client.upsert(
+            collection_name="sakhibot_legal",
+            points=points
+        )
         chunk_id += len(batch)
 
     total += len(chunks)
-    summary.append((cfg["name"], len(chunks), "✓"))
+    summary.append((cfg["name"], len(chunks), "[OK]"))
 
 # ── summary ───────────────────────────────────────────────────────────────────
 print(f"\n{'='*55}")
@@ -139,15 +146,15 @@ print(f"{'='*55}")
 print(f"{'Document':<35} {'Chunks':>6}  Status")
 print("-"*55)
 for name, count, status in summary:
-    bar = "█" * min(count // 2, 25)
+    bar = "|" * min(count // 2, 25)
     print(f"{name:<35} {count:>6}  {status} {bar}")
 
 # ── DV Act check ──────────────────────────────────────────────────────────────
 dv = next((c for n, c, _ in summary if "Domestic Violence" in n), 0)
 if dv == 0:
-    print("\n❌ CRITICAL: DV Act still 0 chunks!")
+    print("\n[FAIL] CRITICAL: DV Act still 0 chunks!")
     print("   Your file is probably named wrong.")
     print("   Run: ls docs/ and check the exact filename.")
     print("   It must be exactly: dv_act_2005.pdf")
 else:
-    print(f"\n✓ DV Act has {dv} chunks — good!")
+    print(f"\n[OK] DV Act has {dv} chunks -- good!")

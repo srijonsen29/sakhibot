@@ -1836,42 +1836,6 @@
       "source": "project-resources-json"
     },
     {
-      "id": "legal-dlsa-kolkata",
-      "category": "legal",
-      "name": "DLSA Kolkata",
-      "address": "High Court, Kolkata 700001",
-      "phone": "03322130000",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.5689,
-      "lng": 88.3436,
-      "source": "project-resources-json"
-    },
-    {
-      "id": "osc-one-stop-centre-kolkata-north",
-      "category": "osc",
-      "name": "One Stop Centre — Kolkata North",
-      "address": "R G Kar Medical College, Kolkata 700004",
-      "phone": "03325551234",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.6044,
-      "lng": 88.3786,
-      "source": "project-resources-json"
-    },
-    {
-      "id": "osc-one-stop-centre-kolkata-south",
-      "category": "osc",
-      "name": "One Stop Centre — Kolkata South",
-      "address": "SSKM Hospital, AJC Bose Road, Kolkata 700020",
-      "phone": "03322235678",
-      "district": "Kolkata",
-      "state": "West Bengal",
-      "lat": 22.5397,
-      "lng": 88.3416,
-      "source": "project-resources-json"
-    },
-    {
       "id": "police-way-360460191",
       "category": "police",
       "name": "boubazar police station",
@@ -1976,6 +1940,700 @@
       "distanceFromCityKm": 1.49
     },
     {
+      "id": "police-alipore-kolkata",
+      "category": "police",
+      "name": "Alipore Police Station",
+      "address": "8, Belvedere Road, Kolkata 700027",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-amherst-street-kolkata",
+      "category": "police",
+      "name": "Amherst Street Police Station",
+      "address": "57, Raja Ram Mohan Sarani, Kolkata 700009",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-bansdroni-kolkata",
+      "category": "police",
+      "name": "Bansdroni Police Station",
+      "address": "Rainagar Health Centre, Madhyapara, Bansdroni, Kolkata 700070",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-ballygunge-kolkata",
+      "category": "police",
+      "name": "Ballygunge Police Station",
+      "address": "38/1, Beltola Road, Kolkata 700020",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-beliaghata-kolkata",
+      "category": "police",
+      "name": "Beliaghata Police Station",
+      "address": "P-57, CIT Road, Kolkata 700010",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-behala-kolkata",
+      "category": "police",
+      "name": "Behala Police Station",
+      "address": "131, Diamond Harbour Road, Kolkata 700034",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-beniapukur-kolkata",
+      "category": "police",
+      "name": "Beniapukur Police Station",
+      "address": "48A, Gorachand Road, Kolkata 700014",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-bhowanipur-kolkata",
+      "category": "police",
+      "name": "Bhowanipur Police Station",
+      "address": "42, S.P. Mukherjee Road, Kolkata 700026",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-burtolla-kolkata",
+      "category": "police",
+      "name": "Burtolla Police Station",
+      "address": "1, Raja Raj Krishna Street, Kolkata 700006",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.592513,
+      "lng": 88.371143,
+      "source": "openstreetmap-overpass"
+    },
+    {
+      "id": "police-burrabazar-kolkata",
+      "category": "police",
+      "name": "Burrabazar Police Station",
+      "address": "8, Mullick Street, Kolkata 700007",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-bowbazar-kolkata",
+      "category": "police",
+      "name": "Bowbazar Police Station",
+      "address": "13, Kapiltolla Lane, Kolkata 700012",
+      "phone": "8100796446",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.569139,
+      "lng": 88.356611,
+      "source": "openstreetmap-overpass"
+    },
+    {
+      "id": "police-cossipore-kolkata",
+      "category": "police",
+      "name": "Cossipore Police Station",
+      "address": "58/A, B.T. Road, Kolkata 700002",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-chitpur-kolkata",
+      "category": "police",
+      "name": "Chitpur Police Station",
+      "address": "19, Cossipore Road, Kolkata 700002",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-charu-market-kolkata",
+      "category": "police",
+      "name": "Charu Market Police Station",
+      "address": "28, Deshpran Sasmal Road, Kolkata 700033",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-chetla-kolkata",
+      "category": "police",
+      "name": "Chetla Police Station",
+      "address": "19/4, Pitamber Ghatak Lane, Kolkata 700027",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-entally-kolkata",
+      "category": "police",
+      "name": "Entally Police Station",
+      "address": "12, Convent Road, Kolkata 700014",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-gariahat-kolkata",
+      "category": "police",
+      "name": "Gariahat Police Station",
+      "address": "2, Dover Lane, Kolkata 700029",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-girish-park-kolkata",
+      "category": "police",
+      "name": "Girish Park Police Station",
+      "address": "138, Ramdulal Sarkar Street, Kolkata 700006",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-garden-reach-kolkata",
+      "category": "police",
+      "name": "Garden Reach Police Station",
+      "address": "1, Taratola Road, Kolkata 700024",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-garfa-kolkata",
+      "category": "police",
+      "name": "Garfa Police Station",
+      "address": "Garfa Deaf and Dumb School Premises, Vivekananda Sarani, Doctor Bagan, Kolkata 700078",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.502958,
+      "lng": 88.371517,
+      "source": "wikipedia-verified"
+    },
+    {
+      "id": "police-haridevpur-kolkata",
+      "category": "police",
+      "name": "Haridevpur Police Station",
+      "address": "559, M.G. Road, Kolkata 700082",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.467675,
+      "lng": 88.336694,
+      "source": "wikipedia-verified"
+    },
+    {
+      "id": "police-hare-street-kolkata",
+      "category": "police",
+      "name": "Hare Street Police Station",
+      "address": "42, C.R. Avenue, Kolkata 700069",
+      "phone": "03322118760",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.568834,
+      "lng": 88.356961,
+      "source": "openstreetmap-overpass"
+    },
+    {
+      "id": "police-hastings-kolkata",
+      "category": "police",
+      "name": "Hastings Police Station",
+      "address": "5, Middle Road, Kolkata 700022",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-jorabagan-kolkata",
+      "category": "police",
+      "name": "Jorabagan Police Station",
+      "address": "78, Nimtala Ghat Street, Kolkata 700006",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.5916,
+      "lng": 88.3535,
+      "source": "wikipedia-verified"
+    },
+    {
+      "id": "police-jorasanko-kolkata",
+      "category": "police",
+      "name": "Jorasanko Police Station",
+      "address": "16, Bal Mukund Malkar Road, Kolkata 700007",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-jadavpur-kolkata",
+      "category": "police",
+      "name": "Jadavpur Police Station",
+      "address": "1, Raja S.C. Mallick Road, Kolkata 700032",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-kasba-kolkata",
+      "category": "police",
+      "name": "Kasba Police Station",
+      "address": "27A, Bose Pukur Road, Kolkata 700042",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-karaya-kolkata",
+      "category": "police",
+      "name": "Karaya Police Station",
+      "address": "52, Karaya Road, Kolkata 700019",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-kalighat-kolkata",
+      "category": "police",
+      "name": "Kalighat Police Station",
+      "address": "53, Haldar Para Road, Kolkata 700026",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-lake-kolkata",
+      "category": "police",
+      "name": "Lake Police Station",
+      "address": "18, Gariahat Road South, Kolkata 700068",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-muchipara-kolkata",
+      "category": "police",
+      "name": "Muchipara Police Station",
+      "address": "6, Santosh Mitra Square, Kolkata 700012",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.566664,
+      "lng": 88.365341,
+      "source": "openstreetmap-overpass"
+    },
+    {
+      "id": "police-maidan-kolkata",
+      "category": "police",
+      "name": "Maidan Police Station",
+      "address": "1/5, A.J.C. Bose Road, Kolkata 700020",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-metiabruz-kolkata",
+      "category": "police",
+      "name": "Metiabruz Police Station",
+      "address": "R-1, S.A. Farouki Road, Kolkata 700024",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-manicktala-kolkata",
+      "category": "police",
+      "name": "Manicktala Police Station",
+      "address": "20, Canal West Road, Kolkata 700006",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.584146,
+      "lng": 88.378896,
+      "source": "openstreetmap-overpass"
+    },
+    {
+      "id": "police-nadial-kolkata",
+      "category": "police",
+      "name": "Nadial Police Station",
+      "address": "Z-3/102, Dr. A K Road, Kolkata 700044",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-new-market-kolkata",
+      "category": "police",
+      "name": "New Market Police Station",
+      "address": "133/2, S.N. Banerjee Road, Kolkata 700013",
+      "phone": "03322177397",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.562718,
+      "lng": 88.354114,
+      "source": "openstreetmap-overpass"
+    },
+    {
+      "id": "police-new-alipore-kolkata",
+      "category": "police",
+      "name": "New Alipore Police Station",
+      "address": "494 and 495, Block-M, New Alipore, Kolkata 700053",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-netaji-nagar-kolkata",
+      "category": "police",
+      "name": "Netaji Nagar Police Station",
+      "address": "9, Puratan Bazar, Hari Mohan Primary School, Kolkata 700092",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-north-port-kolkata",
+      "category": "police",
+      "name": "North Port Police Station",
+      "address": "67/3, Strand Bank Road, Kolkata 700001",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-narkeldanga-kolkata",
+      "category": "police",
+      "name": "Narkeldanga Police Station",
+      "address": "6/1, Dr. M.N. Chatterjee Sarani, Kolkata 700009",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-patuli-kolkata",
+      "category": "police",
+      "name": "Patuli Police Station",
+      "address": "H-10, Baishnabghata-Patuli Township, Panchasayar, Kolkata 700094",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-pragati-maidan-kolkata",
+      "category": "police",
+      "name": "Pragati Maidan Police Station",
+      "address": "Parama Traffic Island, Kolkata 700105",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-posta-kolkata",
+      "category": "police",
+      "name": "Posta Police Station",
+      "address": "67/50, Strand Road, Kolkata 700007",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-park-street-kolkata",
+      "category": "police",
+      "name": "Park Street Police Station",
+      "address": "89, Park Street, Kolkata 700016",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-purba-jadavpur-kolkata",
+      "category": "police",
+      "name": "Purba Jadavpur Police Station",
+      "address": "305, Mukundapur Main Road, Kolkata 700099",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-phoolbagan-kolkata",
+      "category": "police",
+      "name": "Phoolbagan Police Station",
+      "address": "P-86, CIT Road Scheme VII-M, Kolkata 700054",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-panchasayar-kolkata",
+      "category": "police",
+      "name": "Panchasayar Police Station",
+      "address": "Srinagar Main Road, New Garia Super Market, Kolkata 700094",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-parnashree-kolkata",
+      "category": "police",
+      "name": "Parnashree Police Station",
+      "address": "Ward Health Unit, Upen Banerjee Road, Parnasree Pally, Kolkata 700044",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-rajabagan-kolkata",
+      "category": "police",
+      "name": "Rajabagan Police Station",
+      "address": "T-250, Garden Reach Road, Gandhi Maidan, Kolkata 700044",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.553417,
+      "lng": 88.269556,
+      "source": "wikipedia-verified"
+    },
+    {
+      "id": "police-regent-park-kolkata",
+      "category": "police",
+      "name": "Regent Park Police Station",
+      "address": "45/D/2A, Moore Avenue, Kolkata 700040",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-shakespeare-sarani-kolkata",
+      "category": "police",
+      "name": "Shakespeare Sarani Police Station",
+      "address": "34A, Shakespeare Sarani, Kolkata 700017",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-sarsuna-kolkata",
+      "category": "police",
+      "name": "Sarsuna Police Station",
+      "address": "Satellite Township 4, Ho Chi Minh Sarani, Kolkata 700061",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-sinthee-kolkata",
+      "category": "police",
+      "name": "Sinthee Police Station",
+      "address": "145/1, South Sinthi Road, Kolkata 700050",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-south-port-khidirpur-kolkata",
+      "category": "police",
+      "name": "South Port (Khidirpur) Police Station",
+      "address": "1, Satya Doctor Road, Khidirpur, Kolkata 700023 (near Khidirpur Tram Depot)",
+      "phone": "03324593226",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.5386,
+      "lng": 88.323,
+      "source": "manual-verified"
+    },
+    {
+      "id": "police-survey-park-kolkata",
+      "category": "police",
+      "name": "Survey Park Police Station",
+      "address": "D-50/2, East Rajapur, Kolkata 700075",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.493121,
+      "lng": 88.393516,
+      "source": "wikipedia-verified"
+    },
+    {
+      "id": "police-shyampukur-kolkata",
+      "category": "police",
+      "name": "Shyampukur Police Station",
+      "address": "47, Shyampukur Street, Kolkata 700004",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.5997,
+      "lng": 88.3683,
+      "source": "wikipedia-verified"
+    },
+    {
+      "id": "police-tiljala-kolkata",
+      "category": "police",
+      "name": "Tiljala Police Station",
+      "address": "C.N. Roy Road, Kolkata 700039",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-taltala-kolkata",
+      "category": "police",
+      "name": "Taltala Police Station",
+      "address": "4, Taltala Lane, Kolkata 700014",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-taratala-kolkata",
+      "category": "police",
+      "name": "Taratala Police Station",
+      "address": "63, Taratala Road, Kolkata 700088",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-topsia-kolkata",
+      "category": "police",
+      "name": "Topsia Police Station",
+      "address": "106A, New Park Street, Kolkata 700017",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-thakurpukur-kolkata",
+      "category": "police",
+      "name": "Thakurpukur Police Station",
+      "address": "123/117, Diamond Harbour Road, Kolkata 700063",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.465,
+      "lng": 88.307,
+      "source": "wikipedia-verified"
+    },
+    {
+      "id": "police-tala-kolkata",
+      "category": "police",
+      "name": "Tala Police Station",
+      "address": "4, Indra Biswas Road, Kolkata 700037",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-tangra-kolkata",
+      "category": "police",
+      "name": "Tangra Police Station",
+      "address": "15, Gobinda Khatick Road, Kolkata 700010",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-tollygunge-kolkata",
+      "category": "police",
+      "name": "Tollygunge Police Station",
+      "address": "178A, S.P. Mukherjee Road, Kolkata 700026",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-ultadanga-kolkata",
+      "category": "police",
+      "name": "Ultadanga Police Station",
+      "address": "Block-13, CIT Scheme No. VIII-M, Kolkata 700067",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-watgunge-kolkata",
+      "category": "police",
+      "name": "Watgunge Police Station",
+      "address": "16, Watgunge Street, Kolkata 700023",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-west-port-kolkata",
+      "category": "police",
+      "name": "West Port Police Station",
+      "address": "72/1, Garden Reach Road, Kolkata 700043",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "source": "manual-verified-no-coords"
+    },
+    {
+      "id": "police-anandapur-kolkata",
+      "category": "police",
+      "name": "Anandapur Police Station",
+      "address": "757, Anandapur High Road, Madurdaha Hossainpur, near Ruby crossing, Kolkata 700107",
+      "phone": "03324435000",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.509,
+      "lng": 88.4095,
+      "source": "manual-verified"
+    },
+    {
+      "id": "police-hq-lalbazar-kolkata",
+      "category": "police",
+      "name": "Kolkata Police Headquarters (Lalbazar)",
+      "address": "Kolkata",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.57254,
+      "lng": 88.352413,
+      "source": "openstreetmap-overpass"
+    },
+    {
+      "id": "osc-one-stop-centre-kolkata-north",
+      "category": "osc",
+      "name": "One Stop Centre — Kolkata North",
+      "address": "R G Kar Medical College, Kolkata 700004",
+      "phone": "03325551234",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.6044,
+      "lng": 88.3786,
+      "source": "project-resources-json"
+    },
+    {
+      "id": "osc-one-stop-centre-kolkata-south",
+      "category": "osc",
+      "name": "One Stop Centre — Kolkata South",
+      "address": "SSKM Hospital, AJC Bose Road, Kolkata 700020",
+      "phone": "03322235678",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.5397,
+      "lng": 88.3416,
+      "source": "project-resources-json"
+    },
+    {
+      "id": "legal-dlsa-kolkata",
+      "category": "legal",
+      "name": "DLSA Kolkata",
+      "address": "High Court, Kolkata 700001",
+      "phone": "03322130000",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.5689,
+      "lng": 88.3436,
+      "source": "project-resources-json"
+    },
+    {
       "id": "shelter-swadhar-home-kolkata",
       "category": "shelter",
       "name": "Swadhar Home — Kolkata",
@@ -1986,6 +2644,30 @@
       "lat": 22.5769,
       "lng": 88.413,
       "source": "project-resources-json"
+    },
+    {
+      "id": "police-ekbalpur-kolkata",
+      "category": "police",
+      "name": "Ekbalpur Police Station",
+      "address": "4, Ibrahim Road, Kidderpore, Kolkata, West Bengal 700023",
+      "phone": "03324497042",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.534884,
+      "lng": 88.325009,
+      "source": "manual-verified"
+    },
+    {
+      "id": "police-anandapur-kolkata",
+      "category": "police",
+      "name": "Anandapur Police Station",
+      "address": "757 Madurdaha, Hossainpur, Kolkata, West Bengal 700107",
+      "phone": "03324435000",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "lat": 22.514121,
+      "lng": 88.408516,
+      "source": "manual-verified"
     }
   ]
 }

@@ -3,7 +3,8 @@ uvicorn
 langchain
 langchain-community
 langgraph
-chromadb
+qdrant-client
+torch>=2.6.0
 sentence-transformers
 groq
 deep-translator

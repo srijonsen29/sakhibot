@@ -1,0 +1,233 @@
+================================================================================
+                    SAKHIBOT — VIVA PREPARATION & WORKFLOW GUIDE
+================================================================================
+
+This document provides a comprehensive overview of SakhiBot's system architecture,
+module-level implementation, workflow patterns, and potential Viva/External Exam
+FAQs. Review this guide to confidently explain your project tomorrow.
+
+--------------------------------------------------------------------------------
+1. PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+SakhiBot is a legal aid and safety assistant designed specifically for women in 
+India. It assists victims of harassment, domestic violence, and other offenses
+by providing instant legal advice, drafting complaints, locating localized
+welfare resources, and offering an emergency SOS response system that alerts
+saved emergency contacts with the user's real-time GPS location via Twilio SMS.
+
+--------------------------------------------------------------------------------
+2. PROJECT ARCHITECTURE
+--------------------------------------------------------------------------------
+The project follows a standard decoupled Client-Server architecture:
+
++------------------+         REST API (HTTP)         +--------------------+
+|  React Frontend  | <=============================> |  FastAPI Backend   |
+|  (Vite + React)  |                                 |  (Uvicorn Server)  |
++------------------+                                 +--------------------+
+         |                                                     ||
+         | Geolocation                                         || SQLAlchemy (ORM)
+         v                                                     v
++------------------+                                 +--------------------+
+| Browser GPS API  |                                 |   SQLite Database  |
+|  & Google Maps   |                                 |   (sakhibot.db)    |
++------------------+                                 +--------------------+
+                                                               ||
+                                      +------------------------++------------------------+
+                                      |                        |                        |
+                                      v                        v                        v
+                           +--------------------+    +--------------------+    +--------------------+
+                           |     Groq Cloud     |    |    Qdrant Cloud    |    |     Twilio API     |
+                           |   (LLM Reasoning)  |    |  (Vector Database) |    |  (SMS Gateway Alert)
+                           +--------------------+    +--------------------+    +--------------------+
+
+--------------------------------------------------------------------------------
+3. MODULE-BY-MODULE TECHNICAL IMPLEMENTATION
+--------------------------------------------------------------------------------
+
+A. FRONTEND (React App)
+   - Built using Vite for high-performance builds.
+   - Global states handle user authentication, active chat logs, and map coordinates.
+   - SOSButton Component:
+     * Reads coordinates using the HTML5 Geolocation API (`navigator.geolocation`).
+     * Supports a DEV mock location override for local testing.
+     * Triggers POST requests to the backend `/api/sos` endpoint.
+     * Computes distance client-side using the Haversine formula.
+     * Shows directions to nearest police station using Google Maps API.
+
+B. DATABASE (SQLite & SQLAlchemy)
+   - `database.py`: Establishes connections and provides local SQLite session.
+   - `models.py`: Defines relational database tables using SQLAlchemy ORM:
+     * `User`: Stores credentials, email, password hashes, and active status.
+     * `EmergencyContact`: Multi-row relation linked to `User.id` (foreign key).
+       Stores contact name, phone, and relationship type.
+
+C. SECURITY & AUTHENTICATION (FastAPI Security)
+   - `security.py`:
+     * Password hashing: Uses `bcrypt` with random salt generation.
+     * JWT (JSON Web Tokens): Uses `python-jose` to generate signed access tokens with custom expiration times.
+     * Session Dependency: `get_current_user` extracts and decodes the JWT token from HTTP Authorization headers.
+       If `BYPASS_AUTH` is enabled in development, it automatically defaults to the first user in the database.
+
+D. TWILIO SMS ALERT GATEWAY
+   - `sms.py`:
+     * Normalizes phone numbers into E.164 international format (adds "+91" to 10-digit Indian numbers).
+     * Connects to Twilio API using credentials stored in `.env`.
+     * Automatically logs mock warnings to uvicorn console if API credentials are not present, avoiding application crashes.
+
+E. MULTI-AGENT ORCHESTRATION (LangGraph)
+   - `orchestrator.py`:
+     * Uses LangGraph to implement a stateful Multi-Agent Workflow.
+     * Defines a state graph where the graph state contains `message`, `history`, `activated_agents`, etc.
+     * Spawns parallel nodes (Legal Retriever, Document Drafter, Resource Locator, Safety Planner).
+     * Because parallel nodes write back to the state in a fan-out graph, each node is restricted to returning ONLY the fields it actually modifies to avoid conflict errors.
+
+F. SPECIALIZED AI AGENTS
+   - Legal Retriever (`legal_retriever.py`):
+     * Implements Semantic RAG (Retrieval-Augmented Generation).
+     * Queries Qdrant Cloud vector database using `.query_points()`.
+     * Sorts matching acts dynamically and builds a prompt for the Groq LLM.
+   - Document Drafter (`doc_drafter.py`):
+     * Collects complainant details and generates formatted legal draft documents.
+     * Uses the `ReportLab` library to programmatically build and style PDFs.
+   - Resource Locator (`resource_locator.py`):
+     * Performs structured district/state matching for local Indian welfare organizations, One Stop Centres, and shelter homes.
+   - Safety Planner (`safety_planner.py`):
+     * Compiles customized, step-by-step risk-mitigation guides based on the user's specific context.
+
+--------------------------------------------------------------------------------
+4. STEP-BY-STEP PROJECT WORKFLOW
+--------------------------------------------------------------------------------
+
+Workflow 1: User sends a general query (RAG pipeline)
+--------------------------------------------------------------------------------
+[User Input] --> [FastAPI Route] --> [LangGraph Orchestrator]
+                                              |
+                          +-------------------+-------------------+
+                          | (Parallel AI Agent Node Activation)   |
+                          v                                       v
+                  [Legal Retriever]                       [Safety Planner]
+                  (Qdrant Vector DB Lookup)               (Advice Compilation)
+                          |                                       |
+                          +-------------------+-------------------+
+                                              v
+                                     [LLM Response Generation]
+                                              v
+[User Browser] <--------------------- [JSON Server Output]
+
+Workflow 2: User clicks SOS button (Alert pipeline)
+--------------------------------------------------------------------------------
+[Click SOS Button] --> [Browser fetches GPS coordinates: 22.5114, 88.4133]
+                                              |
+                                              v
+[FastAPI Backend /api/auth/sos] <--- [POST Request with Coordinates]
+         |
+         v
+[Queries database for current user's emergency contacts]
+         |
+         v
+[Iterates through numbers: e.g., '6290634920' --> normalizes to '+916290634920']
+         |
+         v
+[Twilio REST Client dispatches SMS with Google Maps Location link]
+         |
+         v
+[Success Response to React UI] --> [Banners turn green on screen]
+
+--------------------------------------------------------------------------------
+5. POTENTIAL VIVA QUESTIONS & ANSWERS (FAQs)
+--------------------------------------------------------------------------------
+
+Q1: What is the main objective of SakhiBot?
+A1: SakhiBot is an AI-powered legal assistance and safety bot for women. It helps 
+    users understand their legal rights, draft formal complaints, locate nearby 
+    support resources (One Stop Centres, shelters), and instantly alert their 
+    emergency contacts with their live GPS location during an emergency.
+
+Q2: Which technology stack did you use to build the application?
+A2: Frontend: React with Vite and CSS.
+    Backend: FastAPI (Python framework) served by Uvicorn.
+    Database: SQLite managed through SQLAlchemy ORM.
+    AI/ML Layer: Groq Cloud (Llama model) orchestrated via LangGraph.
+    Vector Store: Qdrant Cloud.
+    External Communications: Twilio SMS API.
+
+Q3: Why did you choose FastAPI instead of Django or Flask?
+A3: FastAPI is exceptionally fast, supports native asynchronous concurrency out 
+    of the box (async/await), and automatically generates Interactive Swagger API 
+    documentation (available at `/docs`) based on Pydantic schemas.
+
+Q4: What is Qdrant and why is it used in your project?
+A4: Qdrant is an open-source vector database. In our project, we store vector 
+    embeddings of Indian legal acts (e.g., Domestic Violence Act, IPC sections). 
+    When a user asks a question, we convert their query into an embedding and perform 
+    a semantic search on Qdrant to retrieve relevant legal contexts.
+
+Q5: What is RAG (Retrieval-Augmented Generation)?
+A5: RAG is a technique where we retrieve authoritative legal content matching the 
+    user's query from our own vector database (Qdrant), feed that context to the 
+    LLM, and instruct the LLM to write a response based solely on that retrieved 
+    context. This prevents model hallucinations and ensures legally accurate answers.
+
+Q6: Why did you use LangGraph instead of simple LangChain chains?
+A6: LangChain is mostly linear. LangGraph allows us to build stateful, multi-agent 
+    workflows with loops, cycles, and parallel execution. It gives us precise 
+    control over agent transitions, keeping state intact across parallel steps.
+
+Q7: What was the InvalidUpdateError in LangGraph and how did you resolve it?
+A7: In LangGraph, when multiple parallel nodes execute in a fan-out graph and 
+    each returns the entire state, LangGraph gets confused because multiple writers 
+    try to update the same keys simultaneously. The fix was to restrict each agent 
+    node to return ONLY the specific dictionary keys they actually modify (e.g., 
+    `legal_ans` or `doc_pdf_url`), instead of spreading the whole state.
+
+Q8: How does your emergency SOS system work?
+A8: When clicked, the frontend obtains the user's GPS coordinates using `navigator.geolocation` 
+    and sends them to the backend `/sos` endpoint. The backend looks up the user's 
+    saved emergency contacts from the database, normalizes the numbers, compiles 
+    an emergency SMS containing a Google Maps link of the coordinates, and sends 
+    it to all saved contacts using Twilio.
+
+Q9: What is E.164 phone number format?
+A9: It is the international standard format for phone numbers, consisting of 
+    a '+' sign, the country code (e.g., '91' for India), and the subscriber number. 
+    Twilio requires numbers in this format to deliver SMS. Our backend implements 
+    a regex normalizer that automatically formats raw database inputs (like 10-digit 
+    numbers) to E.164 before making API requests.
+
+Q10: What is the purpose of the mock mode in your Twilio integration?
+A10: If Twilio API credentials are not set in the `.env` file during local testing, 
+     the code handles the missing variables gracefully. Instead of crashing, it logs 
+     the SMS body and recipient to the server console (`[MOCK SMS SEND]`). This allows 
+     developers to test application logic without burning Twilio API credits.
+
+Q11: How is user data secured in the database?
+A11: User passwords are never saved in plain text. We hash passwords using `bcrypt` 
+     with a unique salt. During login, we compare password inputs against the stored 
+     hash using bcrypt's verification function. We use JWT (JSON Web Tokens) to secure 
+     endpoints, requiring a valid signature token in the request header.
+
+Q12: How did you implement PDF generation for complaints?
+A12: We used Python's `ReportLab` library inside `doc_drafter.py`. It takes structured 
+     inputs (complainant name, date, details), dynamically applies styles (margins, 
+     fonts, spacers), compiles paragraphs, and writes a production-grade PDF to 
+     the backend storage, providing a download link to the frontend.
+
+Q13: How does the front-end display the nearest police station?
+A13: The frontend loads a local dataset (`sosLocations.json`) containing geolocated 
+     places (police stations, One Stop Centres, etc.). Using the user's active GPS 
+     coordinates, it runs the Haversine formula to compute the physical distance 
+     to each entry, client-side, and dynamically displays the closest matching 
+     police station card along with directions.
+
+Q14: What is the Haversine formula?
+A14: The Haversine formula calculates the shortest distance between two points on the 
+     surface of a sphere (Earth) using their latitudes and longitudes. It is critical 
+     for our nearest police station matching algorithm.
+
+Q15: How does the application handle offline or local development scenarios for models?
+A15: We set environment variables `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` in 
+     the backend configuration. This forces Hugging Face libraries and transformer 
+     models to run strictly from local caches, preventing runtime latency or network 
+     issues during testing.
+
+================================================================================
