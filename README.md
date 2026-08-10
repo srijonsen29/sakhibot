@@ -9,6 +9,12 @@ SakhiBot combines a citation-grounded legal assistant, an automated document dra
 
 ---
 
+## Demo Video
+
+https://github.com/user-attachments/assets/ad76656c-a4a6-46ce-8d31-a14cb6a3e7f3
+
+---
+
 ## Table of Contents
 
 - [The Problem](#the-problem)
